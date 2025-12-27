@@ -4,10 +4,10 @@ import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 
-import TransactionDebug from './components/debug/Transaction.tsx';
+import LearningDebug from './components/debug/Learning.tsx';
 
 function App() {
-    return <TransactionDebug />;
+    return <LearningDebug />;
 }
 
 export default App;

@@ -41,9 +41,9 @@ export interface CalendarUIState {
     currentDate: Date;            // Anchor date (controls which day/week/month/year)
 }
 
-// Optional filter type, useful for services
+// Optional filter type
 export interface CalendarFilter {
     from: Date;
     to: Date;
-    calendarIds?: string[];       // Only include these calendars
+    calendarIds?: string[];
 }
