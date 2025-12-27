@@ -11,7 +11,7 @@ export interface Transaction {
 }
 
 // Category
-export interface FinanceCategory {
+export interface TransactionCategory {
     id: string;
     name: string;                        // "Food", "Transport", "College"
     type: 'income' | 'outcome' | 'both'; // What type of transaction uses this
