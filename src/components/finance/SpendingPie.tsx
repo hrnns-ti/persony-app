@@ -27,12 +27,12 @@ export default function SpendingPie({ data }: SpendingPieProps) {
             <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                     <Pie
-                        data={chartData as any[]}  // ← TYPE ASSERTION
+                        data={chartData as any[]}
                         cx="50%"
                         cy="50%"
-                        innerRadius={45}
-                        outerRadius={65}
-                        paddingAngle={10}
+                        innerRadius={25}
+                        outerRadius={45}
+                        paddingAngle={7}
                         dataKey="value"
                     >
                         {chartData.map((_, index) => (
@@ -44,7 +44,7 @@ export default function SpendingPie({ data }: SpendingPieProps) {
                         contentStyle={{
                             background: '#1e293b',
                             border: '1px solid #475569',
-                            borderRadius: '8px'
+                            borderRadius: '5px'
                         }}
                     />
                 </PieChart>

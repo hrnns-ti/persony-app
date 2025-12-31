@@ -1,6 +1,6 @@
 interface ActionCardProps {
     title: string;
-    icon: string;
+    icon: string | React.ReactElement;
     color: string;
 }
 

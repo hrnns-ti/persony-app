@@ -29,7 +29,7 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
     ] as const;
 
     return (
-        <aside className="w-64 bg-main border-r border-slate-800 h-screen flex w-[25%] flex-col p-10 sticky top-0">
+        <aside className="w-64 bg-main border-r border-line h-screen flex w-[25%] flex-col p-10 sticky top-0">
             {/* Greeting Card */}
             <div className="bg-secondary border border-line rounded-lg p-6">
                 <p className="font-inconsola font-semibold text-sm text-slate-400 mb-1">Hello,</p>
@@ -38,7 +38,7 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-1 flex-1 mt-8 bg-secondary border border-line rounded-lg p-6">
+            <nav className="space-y-1 flex-1 mt-8 bg-secondary border border-line gap-4 rounded-lg p-6">
                 {navItems.map((item) => (
                     <button
                         key={item.id}
@@ -59,7 +59,7 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
 
             {/* Bottom Section */}
             <div className="pt-6 border-t border-slate-800">
-                <button className="bg-secondary w-full px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-medium text-sm">
+                <button className="bg-secondary w-full font-semibold border border-line px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-medium text-md">
                     Log Out
                 </button>
             </div>

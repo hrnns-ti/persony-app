@@ -8,7 +8,7 @@ interface CardProps {
 
 export default function Card({ children, className = '', onClick }: CardProps) {
     return (
-        <div className={`bg-slate-950 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow ${className}`}
+        <div className={`bg-main rounded-lg p-6 ${className}`}
              onClick={onClick}
              role={onClick ? 'button' : undefined}
         > {children} </div>
