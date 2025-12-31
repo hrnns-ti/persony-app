@@ -24,7 +24,7 @@ export default function SpendingPie({ data }: SpendingPieProps) {
 
     return (
         <div className="w-full h-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={150}>
                 <PieChart>
                     <Pie
                         data={chartData as any[]}

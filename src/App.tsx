@@ -89,7 +89,7 @@ function App() {
                         <div className="flex flex-col space-y-6 ">
 
                             {/* ROW 1: Spending */}
-                            <Card className="bg-main border border-line mt-4">
+                            <Card className="bg-main border border-line h-64 mt-4">
                                 <h3 className="text-xs font-semibold text-white">Spending</h3>
                                 <div className="flex flex-col items-center">
                                     {/* Pie Chart */}
@@ -98,7 +98,7 @@ function App() {
                                     </div>
 
                                     {/* Legend */}
-                                    <div className="w-full space-y-2 text-sm">
+                                    <div className="w-full space-y-1 text-sm">
                                         {[
                                             { label: 'Food', color: 'bg-amber-500' },
                                             { label: 'Utilities', color: 'bg-blue-500' },
@@ -115,7 +115,7 @@ function App() {
 
                             {/* ROW 2: Empty/Future Content */}
                             <div className="flex-1 space-y-6">
-                                <Card className="bg-slate-900 border border-slate-700 h-full flex items-center justify-center">
+                                <Card className="bg-MAIN border border-line h-full flex items-center justify-center">
                                     <div className="text-center text-slate-500">
                                         <p className="text-sm">More features coming soon...</p>
                                     </div>
