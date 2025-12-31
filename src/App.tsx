@@ -9,7 +9,7 @@ function App() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'homework' | 'finance'>('dashboard');
 
     return (
-        <div className="min-h-screen h-screen bg-slate-950 text-slate-100 flex overflow-hidden">
+        <div className="font-inconsola font-semibold min-h-screen h-screen bg-slate-950 text-slate-100 flex overflow-hidden">
             {/* Sidebar */}
             <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -22,21 +22,21 @@ function App() {
 
                             {/* ROW 1: Stats + Actions combined */}
                             <div className="space-y-4">
-                                {/* SUB-ROW 1: Stats Cards (3 columns) */}
+                                {/* SUB-ROW 1: Stats Cards  */}
                                 <div className="grid grid-cols-3 gap-4">
                                     <StatsCard label="Balance" value="325.8 K" change="+15.8%" icon="💵" />
                                     <StatsCard label="Incomes" value="15.1 K" change="+9.2%" icon="📈" />
                                     <StatsCard label="Outcomes" value="15.1 K" change="-8.3%" icon="📉" />
                                 </div>
 
-                                {/* SUB-ROW 2: Action Cards (2 columns) */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <ActionCard title="NEW INCOME" icon="💰" color="green" />
-                                    <ActionCard title="NEW OUTCOME" icon="💸" color="red" />
+                                {/* SUB-ROW 2: Action Cards */}
+                                <div className="grid grid-cols-3 gap-4">
+                                    <ActionCard title="New Income" icon="💰" color="green" />
+                                    <ActionCard title="New Outcome" icon="💸" color="red" />
                                 </div>
                             </div>
 
-                            {/* ROW 2: Charts Section (Statistic + Budget Overview) */}
+                            {/* ROW 2: Charts Section */}
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Statistic */}
                                 <Card className="bg-slate-900 border border-slate-700">
@@ -74,7 +74,7 @@ function App() {
                                 </Card>
                             </div>
 
-                            {/* ROW 3: Savings Section (Full width) */}
+                            {/* ROW 3: Savings Section */}
                             <Card className="bg-slate-900 border border-slate-700">
                                 <h3 className="text-lg font-semibold text-white mb-6">Savings</h3>
                                 <div className="h-40 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg flex items-center justify-center border border-dashed border-slate-700">
@@ -83,10 +83,10 @@ function App() {
                             </Card>
                         </div>
 
-                        {/* RIGHT COLUMN (1 col = 33%) */}
+                        {/* RIGHT COLUMN */}
                         <div className="flex flex-col space-y-6">
 
-                            {/* ROW 1: Spending (sejajar dengan ROW 1 left column) */}
+                            {/* ROW 1: Spending */}
                             <Card className="bg-slate-900 border border-slate-700">
                                 <h3 className="text-lg font-semibold text-white mb-4">Spending</h3>
                                 <div className="flex flex-col items-center space-y-4">
@@ -111,7 +111,7 @@ function App() {
                                 </div>
                             </Card>
 
-                            {/* ROW 2: Empty/Future Content (sejajar dengan ROW 2 + 3 left column) */}
+                            {/* ROW 2: Empty/Future Content */}
                             <div className="flex-1 space-y-6">
                                 <Card className="bg-slate-900 border border-slate-700 h-full flex items-center justify-center">
                                     <div className="text-center text-slate-500">

@@ -6,12 +6,16 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                'inter': 'Inter, sans-serif',
+                'inconsola': 'Inconsola, monospace',
+            },
             colors: {
-                dark: {
-                    bg: '#0f172a',
-                    card: '#1e293b',
-                    border: '#334155',
-                }
+                'main': '#010409',
+                'secondary': '#0D1117',
+                'line': '#252B32',
+                'green': '#46EB82',
+                'red': '#EB4648',
             }
         },
     },

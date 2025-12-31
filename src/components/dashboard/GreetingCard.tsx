@@ -7,8 +7,8 @@ export default function GreetingCard() {
     };
 
     return (
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-8 mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+        <div className="font-inconsola font-semibold bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-8 mb-8">
+            <h1 className="text-4xl font-inconsola font-bold text-white mb-2">
                 {getGreeting()}, Haerunnas
             </h1>
             <p className="text-slate-400">Let's manage your finances today.</p>
