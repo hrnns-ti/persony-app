@@ -24,6 +24,7 @@ export interface Saving {
     target?: number;
     balance: number;
     description?: string;
+    createdAt: Date;
 }
 
 // SAVING TRANSACTION
