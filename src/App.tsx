@@ -3,7 +3,6 @@ import Sidebar from './components/dashboard/Sidebar';
 import StatsCard from './components/finance/StatsCard';
 import ActionCard from './components/finance/ActionCard';
 import Card from './components/ui/Card';
-import SpendingPie from './components/finance/SpendingPie';
 import IncomeIcon from "./assets/icons/income.tsx";
 import OutcomeIcon from "./assets/icons/outcome.tsx";
 
@@ -20,7 +19,7 @@ function App() {
                 <div className="flex-1 overflow-y-auto p-8">
                     <div className="gap-6 grid grid-cols-4 h-full">
                         {/* LEFT COLUMN */}
-                        <div className="col-span-3 space-y-6 flex flex-col">
+                        <div className="col-span-3 space-y-6 flex flex-col mb-4">
 
                             {/* ROW 1: Stats */}
                             <div className="space-y-2 ">
@@ -35,6 +34,13 @@ function App() {
                                 <div className="grid grid-cols-3 gap-4">
                                     <ActionCard title="New Income" icon={<IncomeIcon className="w-7 h-7" />} color="white" />
                                     <ActionCard title="New Outcome" icon={<OutcomeIcon className="w-7 h-7" />} color="white" />
+                                    <div className="h-20 w-full border border-line rounded-lg overflow-hidden">
+                                        <img
+                                            src="/assets/cats.png"
+                                            alt="Eyes GIF"
+                                            className={"w-full h-full object-cover object-center"}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -77,7 +83,7 @@ function App() {
                             </div>
 
                             {/* ROW 3: Savings Section */}
-                            <Card className="bg-main border border-line">
+                            <Card className="bg-main border border-line mb-4">
                                 <h3 className="text-xs font-semibold text-white mb-6">Savings</h3>
                                 <div className="h-80 bg-gradient-to-br from-grey to-grey rounded-lg flex items-center justify-center border border-dashed border-slate-700">
                                     <p className="text-slate-500">All savings will here, include create saving</p>
@@ -86,36 +92,19 @@ function App() {
                         </div>
 
                         {/* RIGHT COLUMN */}
-                        <div className="flex flex-col space-y-6 ">
-
-                            {/* ROW 1: Spending */}
-                            <Card className="bg-main border border-line h-64 mt-4">
-                                <h3 className="text-xs font-semibold text-white">Spending</h3>
-                                <div className="flex flex-col items-center">
-                                    {/* Pie Chart */}
-                                    <div className="w-full flex justify-center">
-                                        <SpendingPie />
+                        <div className="flex flex-col space-y-6 mt-4 mb-4">
+                            {/* ROW 2: Empty/Future Content */}
+                            <div className="flex-1 space-y-1">
+                                <Card className="bg-main border border-line h-full flex items-center justify-center">
+                                    <div className="text-center text-slate-500">
+                                        <p className="text-sm">More features coming soon...</p>
                                     </div>
-
-                                    {/* Legend */}
-                                    <div className="w-full space-y-1 text-sm">
-                                        {[
-                                            { label: 'Food', color: 'bg-amber-500' },
-                                            { label: 'Utilities', color: 'bg-blue-500' },
-                                            { label: 'Clothes', color: 'bg-purple-500' },
-                                        ].map((item) => (
-                                            <div key={item.label} className="flex items-center space-x-1">
-                                                <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                                                <span className="text-slate-300 text-xs">{item.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </Card>
+                                </Card>
+                            </div>
 
                             {/* ROW 2: Empty/Future Content */}
                             <div className="flex-1 space-y-6">
-                                <Card className="bg-MAIN border border-line h-full flex items-center justify-center">
+                                <Card className="bg-main border border-line h-full flex items-center justify-center">
                                     <div className="text-center text-slate-500">
                                         <p className="text-sm">More features coming soon...</p>
                                     </div>

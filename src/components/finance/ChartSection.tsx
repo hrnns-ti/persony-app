@@ -1,5 +1,4 @@
 import Card from '../ui/Card';
-import SpendingPie from './SpendingPie';
 
 export default function ChartSection() {
     return (
@@ -17,7 +16,7 @@ export default function ChartSection() {
                 </Card>
 
                 {/* Budget Overview */}
-                <Card className="bg-slate-900 border border-slate-700">
+                <Card className="bg-main border border-line">
                     <h3 className="text-lg font-semibold text-white mb-4">Budget Overview</h3>
                     <div className="space-y-2 text-sm">
                         {[
@@ -41,12 +40,6 @@ export default function ChartSection() {
                             </div>
                         ))}
                     </div>
-                </Card>
-
-                {/* Spending Pie Chart */}
-                <Card className="bg-slate-900 border border-slate-700">
-                    <h3 className="text-lg font-semibold text-white mb-4">Spending</h3>
-                    <SpendingPie />
                 </Card>
             </div>
 
