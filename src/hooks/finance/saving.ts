@@ -25,7 +25,6 @@ export function useSavings() {
         }
     };
 
-    // Add new saving goal
     const addSaving = async (saving: Omit<Saving, 'id' | 'balance' | 'createdAt'>) => {
         try {
             const newSaving = await savingService.add(saving);
@@ -38,19 +37,6 @@ export function useSavings() {
         }
     };
 
-    // Delete saving
-    const deleteSaving = async (id: string) => {
-        try {
-            await savingService.delete(id);
-            setSavings(prev => prev.filter(s => s.id !== id));
-        } catch (err) {
-            setError('Failed to delete saving');
-            console.error(err);
-            throw err;
-        }
-    };
-
-    // Update saving
     const updateSaving = async (id: string, updates: Partial<Omit<Saving, 'id' | 'createdAt'>>) => {
         try {
             const updated = await savingService.update(id, updates);
@@ -65,49 +51,37 @@ export function useSavings() {
         }
     };
 
-    // Get filtered savings
+    const deleteSaving = async (id: string) => {
+        try {
+            await savingService.delete(id);
+            setSavings(prev => prev.filter(s => s.id !== id));
+        } catch (err) {
+            setError('Failed to delete saving');
+            console.error(err);
+            throw err;
+        }
+    };
+
     const getFiltered = (filter: SavingFilter) => {
         if (filter === 'all') return savings;
-
-        if (filter === 'active') {
-            return savings.filter(s => {
-                if (!s.target) return true; // No target = always active
-                return s.balance < s.target;
-            });
-        }
-
-        if (filter === 'completed') {
-            return savings.filter(s => {
-                if (!s.target) return false; // No target = never completed
-                return s.balance >= s.target;
-            });
-        }
-
+        if (filter === 'active') return savings.filter(s => !s.target || s.balance < s.target);
+        if (filter === 'completed') return savings.filter(s => s.target && s.balance >= s.target);
         return savings;
     };
 
-    // Get progress for a saving
     const getProgress = (savingId: string): number | null => {
         const saving = savings.find(s => s.id === savingId);
-        if (!saving || !saving.target) return null;
+        if (!saving?.target) return null;
         return (saving.balance / saving.target) * 100;
     };
 
-    // Get total saved
-    const getTotalSaved = (): number => {
+    const getTotalSaved = () => {
         return savings.reduce((sum, s) => sum + s.balance, 0);
     };
 
     return {
-        savings,
-        loading,
-        error,
-        addSaving,
-        deleteSaving,
-        updateSaving,
-        refresh: loadSavings,
-        getFiltered,
-        getProgress,
-        getTotalSaved
+        savings, loading, error,
+        addSaving, deleteSaving, updateSaving, // ✅ ALL 3
+        refresh: loadSavings, getFiltered, getProgress, getTotalSaved
     };
 }

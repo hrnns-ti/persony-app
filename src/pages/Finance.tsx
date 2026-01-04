@@ -14,7 +14,7 @@ export default function FinancePage() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'homework' | 'finance'>('finance')
     const [isSavingModalOpen, setIsSavingModalOpen] = useState(false)
     const { transactions, addTransaction, loading } = useTransactions()
-    const { savings, addSaving } = useSavings()
+    const { savings, addSaving, updateSaving } = useSavings()
 
     // Calculate stats from transactions
     const stats = {
@@ -84,6 +84,57 @@ export default function FinancePage() {
             }))
             .slice(0, 5)
         : []
+
+    const [actionType, setActionType] = useState<'deposit' | 'withdraw'>('deposit')
+    const [selectedSavingId, setSelectedSavingId] = useState('')
+    const [amount, setAmount] = useState(0)
+    const [recentTransactions, setRecentTransactions] = useState([] as any[])
+
+    // Helper functions
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('id-ID').format(value)
+    }
+
+    const handleAmountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, '')
+        setAmount(parseInt(rawValue) || 0)
+    }
+
+    const handleDepositWithdraw = async () => {
+        if (!selectedSavingId || amount <= 0) return
+
+        try {
+            const saving = savings.find(s => s.id === selectedSavingId)
+            if (!saving) return
+
+            // Simulate deposit/withdraw via updateSaving
+            const newBalance = actionType === 'deposit'
+                ? saving.balance + amount
+                : saving.balance - amount
+
+            if (newBalance < 0) {
+                alert('Insufficient balance!')
+                return
+            }
+
+            await updateSaving(selectedSavingId, { balance: newBalance })
+
+            // Add to recent
+            setRecentTransactions(prev => [{
+                id: Date.now().toString(),
+                savingName: saving.name,
+                amount,
+                type: actionType,
+                date: new Date()
+            }, ...prev.slice(0, 9)])
+
+            setAmount(0)
+            setSelectedSavingId('')
+        } catch (error) {
+            console.error('Deposit/Withdraw failed:', error)
+        }
+    }
+
 
     const outcomeColors = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500']
 
@@ -158,7 +209,7 @@ export default function FinancePage() {
                                     </div>
                                 </Card>
 
-                                {/* Budget Overview - DYNAMIC DATA */}
+                                {/* Budget Overview */}
                                 <Card className="bg-main border border-line">
                                     <h3 className="text-sm font-semibold text-slate-400 mb-4 col-span-full">Outcome Overview</h3>
                                     <div className="space-y-2 text-sm">
@@ -188,7 +239,7 @@ export default function FinancePage() {
                             <Card className="bg-main border border-line flex-1 flex flex-col overflow-hidden">
                                 <h3 className="text-sm font-semibold text-slate-400 mb-4 flex-shrink-0">Savings</h3>
 
-                                {/* Scrollable savings container - flex-1 untuk ambil sisa space */}
+                                {/* Scrollable savings container */}
                                 <div className="flex-1 overflow-y-auto pr-2 savings-scroll">
                                     {savings && savings.length > 0 ? (
                                         <div className="space-y-3">
@@ -229,24 +280,113 @@ export default function FinancePage() {
 
                         {/* RIGHT COLUMN */}
                         <div className="flex flex-col space-y-6 overflow-hidden">
-                            {/* ROW 1: Empty/Future Content */}
+                            {/* Top: GIF/Empty */}
                             <div className="flex-1 mt-4 overflow-hidden">
                                 <img
                                     src="/assets/night.jpg"
                                     alt="Eyes GIF"
-                                    className={"w-full h-full border border-line rounded-lg object-cover object-center"}
+                                    className="w-full h-full border border-line rounded-lg object-cover object-center"
                                 />
                             </div>
 
-                            {/* ROW 2: Empty/Future Content */}
-                            <div className="flex-1 overflow-hidden">
-                                <Card className="bg-main border border-line h-full flex items-center justify-center">
-                                    <div className="text-center text-slate-500">
-                                        <p className="text-sm">More features coming soon...</p>
+                            {/* Bottom: FULL SAVINGS */}
+                            <div className="flex flex-col space-y-4">
+                                {/* Recent */}
+                                <Card className="bg-main border border-line p-4">
+                                    <h4 className="text-sm text-slate-400 mb-3 tracking-wider">
+                                        Recent Moves
+                                    </h4>
+                                    <div className="space-y-2 max-h-28 overflow-y-auto pr-1 savings-scroll">
+                                        {recentTransactions.slice(0, 4).map((tx) => (
+                                            <div key={tx.id} className="flex items-center justify-between text-xs py-2 px-2 bg-slate-900/30 rounded-lg">
+                                                <span className="text-slate-300 truncate font-mono">{tx.savingName}</span>
+                                                <span className={`font-bold font-mono  ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'}`}>{tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}</span>
+                                            </div>
+                                        ))}
+                                        {!recentTransactions.length && (
+                                            <div className="text-center py-6">
+                                                <div className="text-2xl mb-2">💳</div>
+                                                <p className="text-slate-500 text-xs">No transactions yet</p>
+                                            </div>
+                                        )}
                                     </div>
+                                </Card>
+
+                                {/* Savings Actions */}
+                                <Card className="bg-main border border-line p-2">
+                                    <h3 className="text-sm text-slate-400 m-4 tracking-wider">
+                                        Quick Balance
+                                    </h3>
+
+                                    {/* Toggle */}
+                                    <div className="grid grid-cols-2 mx-2 gap-3 mb-4">
+                                        <button
+                                            onClick={() => setActionType('deposit')}
+                                            className={`p-2 rounded-md transition-all font-mono ${
+                                                actionType === 'deposit'
+                                                    ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/50 text-emerald-200'
+                                                    : 'bg-secondary border border-line hover:border-line hover:bg-line text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            <div className="text-sm">Deposit</div>
+                                        </button>
+                                        <button
+                                            onClick={() => setActionType('withdraw')}
+                                            className={`p-2 rounded-md transition-all font-mono ${
+                                                actionType === 'withdraw'
+                                                    ? 'bg-gradient-to-r from-red/40 to-red/30 border border-red text-white'
+                                                    : 'bg-secondary border border-line hover:border-line hover:bg-line text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            <div className="text-sm">Withdraw</div>
+                                        </button>
+                                    </div>
+
+                                    {/* Amount */}
+                                    <div className="relative mb-4 mx-2 rounded-md">
+                                        <div className="absolute inset-y-0 left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                            <span className="text-slate-400 text-sm">Rp</span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="100.000"
+                                            value={formatCurrency(amount)}
+                                            onChange={handleAmountInputChange}
+                                            className="w-full pl-12 pr-4 text-right text-sm font-mono bg-secondary border border-line hover:border-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-md transition-all h-14"
+                                        />
+                                    </div>
+
+                                    {/* Dropdown */}
+                                    <select
+                                        value={selectedSavingId}
+                                        onChange={(e) => setSelectedSavingId(e.target.value)}
+                                        className="w-[93.3%] bg-secondary mx-2 savings-scroll border border-line hover:border-slate-400 focus:border-slate-400 focus:outline-none focus:ring focus:ring-line rounded-md px-2 py-4 text-sm font-mono mb-4 text-slate-400"
+                                        disabled={!savings.length}
+                                    >
+                                        <option value="">Pilih Savings</option>
+                                        {savings.map((saving) => (
+                                            <option key={saving.id} value={saving.id}>
+                                                {saving.name}
+                                                <span className="ml-4 opacity-75">
+                                                    ({formatCurrency(saving.balance)}
+                                                    {saving.target && ` / ${formatCurrency(saving.target)}`})
+                                                </span>
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    {/* Button */}
+                                    <button
+                                        onClick={handleDepositWithdraw}
+                                        disabled={!selectedSavingId || amount <= 0}
+                                        className="w-[93%] m-2 py-4 px-4 text-sm bg-secondary hover:from-secondary border border-line  disabled:cursor-not-allowed text-white rounded-md  transition-all duration-300 font-mono tracking-wide"
+                                    >
+                                        {actionType === 'deposit' ? '💰 DEPOSIT' : '💸 WITHDRAW'}
+                                    </button>
                                 </Card>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </main>

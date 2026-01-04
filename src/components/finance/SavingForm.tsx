@@ -8,7 +8,6 @@ interface SavingFormProps {
 export default function SavingForm({ onSubmit, onCancel }: SavingFormProps) {
     const [form, setForm] = useState({ name: '', target: 0, description: '' })
 
-    // ✅ MOVED INSIDE COMPONENT - NO TS ERROR
     const formatCurrency = (value: number): string => {
         return new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: 0,
