@@ -32,11 +32,11 @@ export default function FinancePage() {
 
                                 {/* SUB-ROW 2: Action Cards */}
                                 <div className="grid grid-cols-3 gap-4">
-                                    <ActionCard title="New Income" icon={<IncomeIcon className="w-7 h-7" />} color="white" />
-                                    <ActionCard title="New Outcome" icon={<OutcomeIcon className="w-7 h-7" />} color="white" />
+                                    <ActionCard title="New Income" icon={<IncomeIcon className="w-7 h-7" />} color="slate-400" />
+                                    <ActionCard title="New Outcome" icon={<OutcomeIcon className="w-7 h-7" />} color="slate-400" />
                                     <div className="h-20 w-full border border-line rounded-lg overflow-hidden">
                                         <img
-                                            src="/assets/cats.png"
+                                            src="/assets/unknown.jpg"
                                             alt="Eyes GIF"
                                             className={"w-full h-full object-cover object-center"}
                                         />
@@ -48,7 +48,7 @@ export default function FinancePage() {
                             <div className="grid grid-cols-[66%_32.5%] gap-4">
                                 {/* Statistic */}
                                 <Card className="bg-main border border-line">
-                                    <h3 className="text-xs font-semibold text-white mb-4">Statistic</h3>
+                                    <h3 className="text-sm font-semibold text-slate-400 mb-4">Statistic</h3>
                                     <div className="h-40 bg-gradient-to-br from-grey to-grey rounded-lg flex items-center justify-center border border-dashed border-line">
                                         <p className="text-slate-500 text-sm">Chart coming soon...</p>
                                     </div>
@@ -56,7 +56,7 @@ export default function FinancePage() {
 
                                 {/* Budget Overview */}
                                 <Card className="bg-main border border-line">
-                                    <h3 className="text-xs font-semibold text-white mb-4 col-span-full">Budget Overview</h3>
+                                    <h3 className="text-sm font-semibold text-slate-400 mb-4 col-span-full">Outcome Overview</h3>
                                     <div className="space-y-2 text-sm">
                                         {[
                                             { label: 'Food', value: 65, color: 'bg-amber-500' },
@@ -84,7 +84,7 @@ export default function FinancePage() {
 
                             {/* ROW 3: Savings Section */}
                             <Card className="bg-main border border-line mb-4">
-                                <h3 className="text-xs font-semibold text-white mb-6">Savings</h3>
+                                <h3 className="text-sm font-semibold text-slate-400 mb-6">Savings</h3>
                                 <div className="h-80 bg-gradient-to-br from-grey to-grey rounded-lg flex items-center justify-center border border-dashed border-slate-700">
                                     <p className="text-slate-500">All savings will here, include create saving</p>
                                 </div>

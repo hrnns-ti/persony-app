@@ -11,7 +11,7 @@ export default function GreetingCard() {
             <h1 className="text-4xl font-inconsola font-bold text-white mb-2">
                 {getGreeting()}, Haerunnas
             </h1>
-            <p className="text-slate-400">Let's manage your finances today.</p>
+            <p className="text-slate-900">Let's manage your finances today.</p>
         </div>
     );
 }

@@ -58,7 +58,7 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
             </nav>
 
             {/* Bottom Section */}
-            <div className="pt-6 border-t border-slate-800">
+            <div className="pt-6 border-line">
                 <button className="bg-secondary w-full font-semibold border border-line px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-medium text-md">
                     Log Out
                 </button>
