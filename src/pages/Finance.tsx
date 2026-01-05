@@ -9,6 +9,7 @@ import { useTransactions } from '../hooks/finance/transaction'
 import { useSavings } from '../hooks/finance/saving'
 import Modal from '../components/ui/Modal'
 import SavingForm from '../components/finance/SavingForm'
+import {Saving} from "../assets/icons";
 
 export default function FinancePage() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'homework' | 'finance'>('finance')
@@ -190,12 +191,13 @@ export default function FinancePage() {
                                         color="slate-400"
                                         onClick={handleNewOutcome}
                                     />
-                                    <ActionCard
-                                        title="New Saving"
-                                        icon="🏦"
-                                        color="slate-400"
-                                        onClick={handleNewSaving}
-                                    />
+                                    <div className="flex-1 overflow-hidden">
+                                        <img
+                                            src="/assets/eyes.gif"
+                                            alt="Eyes GIF"
+                                            className="w-full h-20 border border-line rounded-lg object-cover object-center"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -285,7 +287,7 @@ export default function FinancePage() {
                                 <img
                                     src="/assets/night.jpg"
                                     alt="Eyes GIF"
-                                    className="w-full h-full border border-line rounded-lg object-cover object-center"
+                                    className="w-full h-full border border-line rounded-lg object-cover object-bottom"
                                 />
                             </div>
 
@@ -294,7 +296,7 @@ export default function FinancePage() {
                                 {/* Recent */}
                                 <Card className="bg-main border border-line p-4">
                                     <h4 className="text-sm text-slate-400 mb-3 tracking-wider">
-                                        Recent Moves
+                                        Recent Transaction
                                     </h4>
                                     <div className="space-y-2 max-h-28 overflow-y-auto pr-1 savings-scroll">
                                         {recentTransactions.slice(0, 4).map((tx) => (
@@ -312,10 +314,17 @@ export default function FinancePage() {
                                     </div>
                                 </Card>
 
+                                <ActionCard
+                                    title="New Saving"
+                                    icon={<Saving className="w-6 h-6" />}
+                                    color="slate-400"
+                                    onClick={handleNewSaving}
+                                />
+
                                 {/* Savings Actions */}
                                 <Card className="bg-main border border-line p-2">
                                     <h3 className="text-sm text-slate-400 m-4 tracking-wider">
-                                        Quick Balance
+                                        Saving Transaction
                                     </h3>
 
                                     {/* Toggle */}
@@ -379,14 +388,14 @@ export default function FinancePage() {
                                     <button
                                         onClick={handleDepositWithdraw}
                                         disabled={!selectedSavingId || amount <= 0}
-                                        className="w-[93%] m-2 py-4 px-4 text-sm bg-secondary hover:from-secondary border border-line  disabled:cursor-not-allowed text-white rounded-md  transition-all duration-300 font-mono tracking-wide"
+                                        className="w-[93%] m-2 py-4 px-4 text-sm bg-secondary hover:from-secondary border border-line disabled:cursor-not-allowed text-white rounded-md  transition-all duration-300 font-mono tracking-wide
+                                        hover:bg-gradient-to-r hover:from-emerald-500/20 hover:to-emerald-600/20 hover:border-emerald-500/50 hover:text-emerald-200"
                                     >
-                                        {actionType === 'deposit' ? '💰 DEPOSIT' : '💸 WITHDRAW'}
+                                        {actionType === 'deposit' ? 'DEPOSIT' : 'WITHDRAW'}
                                     </button>
                                 </Card>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </main>
