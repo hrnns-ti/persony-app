@@ -131,8 +131,8 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({ transactions = [], he
     }
 
     return (
-        <Card className="bg-gradient-to-br from-grey to-grey border border-line overflow-hidden">
-            <div className=" flex flex-col gap-4 h-full">
+        <Card className="bg-gradient-to-br from-grey to-grey border h-full   border-line overflow-hidden">
+            <div className=" flex flex-col gap-4">
                 {/* Header + Filter */}
                 <div className="flex items-center justify-between pb-4">
                     <h3 className="text-sm text-slate-400 font-mono">Statistics</h3>
@@ -183,7 +183,7 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({ transactions = [], he
                 </div>
 
                 {/* Chart */}
-                <ResponsiveContainer width="100%" height={height*.93}>
+                <ResponsiveContainer width="100%" height={height*.89}>
                     <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                         <CartesianGrid
                             vertical={false}

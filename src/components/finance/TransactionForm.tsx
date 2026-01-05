@@ -32,7 +32,7 @@ export default function TransactionForm({ type, onSubmit, onCancel }: Transactio
 
     // Categories
     const incomeCategories = ['Salary', 'Freelance', 'Bonus', 'Investment', 'Other']
-    const outcomeCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other']
+    const outcomeCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Education','Other']
     const categories = type === 'income' ? incomeCategories : outcomeCategories
     const isIncome = type === 'income'
 
