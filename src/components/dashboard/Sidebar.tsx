@@ -2,8 +2,8 @@ import { useState } from 'react';
 import {DashboardIcon, FinanceIcon, LearningIcon, CalendarIcon} from "../../assets/icons";
 
 interface SidebarProps {
-    activeTab?: 'dashboard' | 'calendar' | 'homework' | 'finance';
-    onTabChange?: (tab: 'dashboard' | 'calendar' | 'homework' | 'finance') => void;
+    activeTab?: 'dashboard' | 'calendar' | 'learning' | 'finance';
+    onTabChange?: (tab: 'dashboard' | 'calendar' | 'learning' | 'finance') => void;
 }
 
 export default function Sidebar({ activeTab = 'dashboard', onTabChange }: SidebarProps) {
@@ -24,7 +24,7 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
     const navItems = [
         { id: 'dashboard' as const, label: 'Dashboard', icon: DashboardIcon },
         { id: 'calendar' as const, label: 'Calendar', icon: CalendarIcon },
-        { id: 'homework' as const, label: 'Learning Space', icon: LearningIcon },
+        { id: 'learning' as const, label: 'Learning Space', icon: LearningIcon },
         { id: 'finance' as const, label: 'Finance', icon: FinanceIcon },
     ] as const;
 

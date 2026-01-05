@@ -34,7 +34,7 @@ export default function SavingForm({ onSubmit, onCancel }: SavingFormProps) {
             {/* Goal Name */}
             <div>
                 <label className="block text-sm font-semibold text-slate-200 mb-2 tracking-tight">
-                    Goal Name
+                    Saving Name
                 </label>
                 <input
                     type="text"

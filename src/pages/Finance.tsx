@@ -9,11 +9,17 @@ import { useTransactions } from '../hooks/finance/transaction'
 import { useSavings } from '../hooks/finance/saving'
 import Modal from '../components/ui/Modal'
 import SavingForm from '../components/finance/SavingForm'
-import {Saving} from "../assets/icons";
+import { Saving } from "../assets/icons";
+import TransactionForm from "../components/finance/TransactionForm.tsx";
+import StatisticsChart from '../components/finance/StatisticsChart'
 
 export default function FinancePage() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'homework' | 'finance'>('finance')
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'learning' | 'finance'>('finance')
+
     const [isSavingModalOpen, setIsSavingModalOpen] = useState(false)
+    const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
+    const [isOutcomeModalOpen, setIsOutcomeModalOpen] = useState(false)
+
     const { transactions, addTransaction, loading } = useTransactions()
     const { savings, addSaving, updateSaving } = useSavings()
 
@@ -43,23 +49,34 @@ export default function FinancePage() {
         })
     }
 
-    // Quick actions
     const handleNewIncome = () => {
+        setIsIncomeModalOpen(true) // ✅ TRIGGER MODAL, BUKAN HARDCODED
+    }
+
+    const handleAddIncome = (amount: number, category: string, description?: string) => {
         addTransaction({
             type: 'income',
-            amount: 250000,
-            category: 'Salary',
-            date: new Date()
+            amount,
+            category,
+            date: new Date(),
+            description
         })
+        setIsIncomeModalOpen(false)
     }
 
     const handleNewOutcome = () => {
+        setIsOutcomeModalOpen(true)
+    }
+
+    const handleAddOutcome = (amount: number, category: string, description?: string) => {
         addTransaction({
             type: 'outcome',
-            amount: 45000,
-            category: 'Food',
-            date: new Date()
+            amount: -amount, // Negative for outcome
+            category,
+            date: new Date(),
+            description
         })
+        setIsOutcomeModalOpen(false)
     }
 
     const handleNewSaving = () => {
@@ -89,7 +106,6 @@ export default function FinancePage() {
     const [actionType, setActionType] = useState<'deposit' | 'withdraw'>('deposit')
     const [selectedSavingId, setSelectedSavingId] = useState('')
     const [amount, setAmount] = useState(0)
-    const [recentTransactions, setRecentTransactions] = useState([] as any[])
 
     // Helper functions
     const formatCurrency = (value: number) => {
@@ -120,22 +136,12 @@ export default function FinancePage() {
 
             await updateSaving(selectedSavingId, { balance: newBalance })
 
-            // Add to recent
-            setRecentTransactions(prev => [{
-                id: Date.now().toString(),
-                savingName: saving.name,
-                amount,
-                type: actionType,
-                date: new Date()
-            }, ...prev.slice(0, 9)])
-
             setAmount(0)
             setSelectedSavingId('')
         } catch (error) {
             console.error('Deposit/Withdraw failed:', error)
         }
     }
-
 
     const outcomeColors = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500']
 
@@ -176,68 +182,50 @@ export default function FinancePage() {
                                         icon="{$}"
                                     />
                                 </div>
+                            </div>
 
-                                {/* SUB-ROW 2: Action Cards - CONNECTED TO HOOKS */}
-                                <div className="grid grid-cols-3 gap-4">
-                                    <ActionCard
-                                        title="New Income"
-                                        icon={<IncomeIcon className="w-7 h-7" />}
-                                        color="slate-400"
-                                        onClick={handleNewIncome}
-                                    />
-                                    <ActionCard
-                                        title="New Outcome"
-                                        icon={<OutcomeIcon className="w-7 h-7" />}
-                                        color="slate-400"
-                                        onClick={handleNewOutcome}
-                                    />
+                            {/* ROW 2: Charts Section + Action Cards */}
+                            <div className="grid grid-cols-[66%_32.2%] gap-4 flex-shrink-0">
+                                {/* Statistic */}
+                                <StatisticsChart transactions={transactions || []} />
+
+                                {/* Action Cards - CONNECTED TO HOOKS */}
+                                <div className="grid grid-row-3 h-[80%] gap-4">
                                     <div className="flex-1 overflow-hidden">
                                         <img
                                             src="/assets/eyes.gif"
                                             alt="Eyes GIF"
-                                            className="w-full h-20 border border-line rounded-lg object-cover object-center"
+                                            className="w-full h-full border border-line rounded-lg object-cover object-center"
                                         />
                                     </div>
+                                    {/* Budget Overview */}
+                                    <Card className="bg-main border border-line">
+                                        <h3 className="text-sm font-semibold text-slate-400 mb-4 col-span-full">Outcome Overview</h3>
+                                        <div className="space-y-2 text-sm">
+                                            {outcomeItems.length > 0 ? (
+                                                outcomeItems.map((item, idx) => (
+                                                    <div key={item.label}>
+                                                        <div className="flex justify-between mb-1">
+                                                            <span className="text-slate-300 text-xs">{item.label}</span>
+                                                            <span className="text-slate-400 text-xs">{item.percentage.toFixed(0)}%</span>
+                                                        </div>
+                                                        <div className="w-full h-2 bg-slate-800 overflow-hidden">
+                                                            <div
+                                                                className={`h-full ${outcomeColors[idx % outcomeColors.length]}`}
+                                                                style={{ width: `${item.percentage}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-slate-500 text-xs">No outcome data yet</p>
+                                            )}
+                                        </div>
+                                    </Card>
                                 </div>
                             </div>
 
-                            {/* ROW 2: Charts Section */}
-                            <div className="grid grid-cols-[66%_32.2%] gap-4 flex-shrink-0">
-                                {/* Statistic */}
-                                <Card className="bg-main border border-line">
-                                    <h3 className="text-sm font-semibold text-slate-400 mb-4">Statistic</h3>
-                                    <div className="h-40 bg-gradient-to-br from-grey to-grey rounded-lg flex items-center justify-center border border-dashed border-line">
-                                        <p className="text-slate-500 text-sm">Chart coming soon...</p>
-                                    </div>
-                                </Card>
-
-                                {/* Budget Overview */}
-                                <Card className="bg-main border border-line">
-                                    <h3 className="text-sm font-semibold text-slate-400 mb-4 col-span-full">Outcome Overview</h3>
-                                    <div className="space-y-2 text-sm">
-                                        {outcomeItems.length > 0 ? (
-                                            outcomeItems.map((item, idx) => (
-                                                <div key={item.label}>
-                                                    <div className="flex justify-between mb-1">
-                                                        <span className="text-slate-300 text-xs">{item.label}</span>
-                                                        <span className="text-slate-400 text-xs">{item.percentage.toFixed(0)}%</span>
-                                                    </div>
-                                                    <div className="w-full h-2 bg-slate-800 overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${outcomeColors[idx % outcomeColors.length]}`}
-                                                            style={{ width: `${item.percentage}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-slate-500 text-xs">No outcome data yet</p>
-                                        )}
-                                    </div>
-                                </Card>
-                            </div>
-
-                            {/* ROW 3: Savings Section - SCROLL HANYA DI SINI */}
+                            {/* ROW 3: Savings Section */}
                             <Card className="bg-main border border-line flex-1 flex flex-col overflow-hidden">
                                 <h3 className="text-sm font-semibold text-slate-400 mb-4 flex-shrink-0">Savings</h3>
 
@@ -293,27 +281,18 @@ export default function FinancePage() {
 
                             {/* Bottom: FULL SAVINGS */}
                             <div className="flex flex-col space-y-4">
-                                {/* Recent */}
-                                <Card className="bg-main border border-line p-4">
-                                    <h4 className="text-sm text-slate-400 mb-3 tracking-wider">
-                                        Recent Transaction
-                                    </h4>
-                                    <div className="space-y-2 max-h-28 overflow-y-auto pr-1 savings-scroll">
-                                        {recentTransactions.slice(0, 4).map((tx) => (
-                                            <div key={tx.id} className="flex items-center justify-between text-xs py-2 px-2 bg-slate-900/30 rounded-lg">
-                                                <span className="text-slate-300 truncate font-mono">{tx.savingName}</span>
-                                                <span className={`font-bold font-mono  ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'}`}>{tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}</span>
-                                            </div>
-                                        ))}
-                                        {!recentTransactions.length && (
-                                            <div className="text-center py-6">
-                                                <div className="text-2xl mb-2">💳</div>
-                                                <p className="text-slate-500 text-xs">No transactions yet</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </Card>
-
+                                <ActionCard
+                                    title="New Income"
+                                    icon={<IncomeIcon className="w-7 h-7" />}
+                                    color="slate-400"
+                                    onClick={handleNewIncome}
+                                />
+                                <ActionCard
+                                    title="New Outcome"
+                                    icon={<OutcomeIcon className="w-7 h-7" />}
+                                    color="slate-400"
+                                    onClick={handleNewOutcome}
+                                />
                                 <ActionCard
                                     title="New Saving"
                                     icon={<Saving className="w-6 h-6" />}
@@ -399,6 +378,7 @@ export default function FinancePage() {
                     </div>
                 </div>
             </main>
+
             <Modal
                 isOpen={isSavingModalOpen}
                 onClose={() => setIsSavingModalOpen(false)}
@@ -407,6 +387,30 @@ export default function FinancePage() {
                 <SavingForm
                     onSubmit={handleSaveSaving}
                     onCancel={() => setIsSavingModalOpen(false)}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={isIncomeModalOpen}
+                onClose={() => setIsIncomeModalOpen(false)}
+                title="Add Income"
+            >
+                <TransactionForm
+                    type="income"
+                    onSubmit={handleAddIncome}
+                    onCancel={() => setIsIncomeModalOpen(false)}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={isOutcomeModalOpen}
+                onClose={() => setIsOutcomeModalOpen(false)}
+                title="Add Outcome"
+            >
+                <TransactionForm
+                    type="outcome"
+                    onSubmit={handleAddOutcome}
+                    onCancel={() => setIsOutcomeModalOpen(false)}
                 />
             </Modal>
         </div>
