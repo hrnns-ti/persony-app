@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SavingTransaction, SavingTransactionFilter } from '../../types/finance.type';
+import { SavingTransaction, SavingTransactionFilter } from '../../types/finance.ts';
 import savingTransactionService from '../../services/finance.service/savingTransaction';
 
 export function useSavingTransactions(savingId?: string) {

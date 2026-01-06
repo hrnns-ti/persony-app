@@ -1,0 +1,1 @@
+export type AppTab = 'dashboard' | 'calendar' | 'workspace' | 'finance';

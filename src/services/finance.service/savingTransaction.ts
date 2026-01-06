@@ -1,4 +1,4 @@
-import { SavingTransaction, SavingTransactionFilter } from '../../types/finance.type';
+import { SavingTransaction, SavingTransactionFilter } from '../../types/finance.ts';
 import savingService from './saving';
 
 class SavingTransactionService {

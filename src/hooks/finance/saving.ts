@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Saving, SavingFilter } from '../../types/finance.type';
+import { Saving, SavingFilter } from '../../types/finance.ts';
 import savingService from '../../services/finance.service/saving';
 
 export function useSavings() {
@@ -81,7 +81,7 @@ export function useSavings() {
 
     return {
         savings, loading, error,
-        addSaving, deleteSaving, updateSaving, // ✅ ALL 3
+        addSaving, deleteSaving, updateSaving,
         refresh: loadSavings, getFiltered, getProgress, getTotalSaved
     };
 }

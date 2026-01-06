@@ -1,19 +1,13 @@
-import { useState } from 'react';
-import {DashboardIcon, FinanceIcon, LearningIcon, CalendarIcon} from "../../assets/icons";
+import { DashboardIcon, FinanceIcon, LearningIcon, CalendarIcon } from "../../assets/icons";
+
+export type AppTab = 'dashboard' | 'calendar' | 'workspace' | 'finance';
 
 interface SidebarProps {
-    activeTab?: 'dashboard' | 'calendar' | 'learning' | 'finance';
-    onTabChange?: (tab: 'dashboard' | 'calendar' | 'learning' | 'finance') => void;
+    activeTab: AppTab;
+    onTabChange: (tab: AppTab) => void;
 }
 
-export default function Sidebar({ activeTab = 'dashboard', onTabChange }: SidebarProps) {
-    const [active, setActive] = useState(activeTab);
-
-    const handleTabChange = (tab: typeof activeTab) => {
-        setActive(tab);
-        onTabChange?.(tab);
-    };
-
+export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Good Morning';
@@ -24,7 +18,7 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
     const navItems = [
         { id: 'dashboard' as const, label: 'Dashboard', icon: DashboardIcon },
         { id: 'calendar' as const, label: 'Calendar', icon: CalendarIcon },
-        { id: 'learning' as const, label: 'Learning Space', icon: LearningIcon },
+        { id: 'workspace' as const, label: 'Workspace', icon: LearningIcon },
         { id: 'finance' as const, label: 'Finance', icon: FinanceIcon },
     ] as const;
 
@@ -39,22 +33,27 @@ export default function Sidebar({ activeTab = 'dashboard', onTabChange }: Sideba
 
             {/* Navigation */}
             <nav className="space-y-1 flex-1 mt-8 bg-secondary border border-line gap-4 rounded-lg p-6">
-                {navItems.map((item) => (
-                    <button
-                        key={item.id}
-                        onClick={() => handleTabChange(item.id)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-medium transition-all group ${
-                            active === item.id
-                                ? 'text-white-600'
-                                : 'text-slate-400 hover:text-blue-400 '
-                        }`}
-                    >
-                        <item.icon className={`w-5 h-5 flex-shrink-0 transition-opacity ${
-                            active === item.id ? 'opacity-100' : 'opacity-70'
-                        }`}/>
-                        <span>{item.label}</span>
-                    </button>
-                ))}
+                {navItems.map((item) => {
+                    const active = activeTab === item.id;
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => onTabChange(item.id)}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-medium transition-all group ${
+                                active
+                                    ? 'text-blue-300 bg-slate-800/60 border border-blue-500/40 shadow-lg'
+                                    : 'text-slate-400 hover:text-blue-400'
+                            }`}
+                        >
+                            <item.icon
+                                className={`w-5 h-5 flex-shrink-0 transition-opacity ${
+                                    active ? 'opacity-100' : 'opacity-70'
+                                }`}
+                            />
+                            <span>{item.label}</span>
+                        </button>
+                    );
+                })}
             </nav>
 
             {/* Bottom Section */}

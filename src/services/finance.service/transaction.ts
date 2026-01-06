@@ -1,4 +1,4 @@
-import { Transaction, Stats, TransactionFilter, DateFilter } from '../../types/finance.type.ts';
+import { Transaction, Stats, TransactionFilter, DateFilter } from '../../types/finance.ts';
 
 class TransactionService {
     private storageKey = 'persony_transactions';

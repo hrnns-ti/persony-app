@@ -1,4 +1,4 @@
-import { Saving, SavingFilter } from '../../types/finance.type';
+import { Saving, SavingFilter } from '../../types/finance.ts';
 
 class SavingService {
     private storageKey = 'persony_savings';

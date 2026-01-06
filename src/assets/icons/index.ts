@@ -1,6 +1,6 @@
 export { default as DashboardIcon } from './dashboard.tsx'
 export { default as FinanceIcon } from './finance.tsx'
-export { default as LearningIcon } from './learning.tsx'
+export { default as LearningIcon } from './workspace.tsx'
 export { default as CalendarIcon } from './calendar.tsx'
 export { default as IncomeIcon } from './income.tsx'
 export { default as OutcomeIcon } from './outcome.tsx'

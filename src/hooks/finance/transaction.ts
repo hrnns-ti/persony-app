@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Transaction, TransactionFilter, DateFilter } from '../../types/finance.type';
+import { Transaction, TransactionFilter, DateFilter } from '../../types/finance.ts';
 import transactionService from '../../services/finance.service/transaction';
 
 export function useTransactions() {

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Sidebar from '../components/dashboard/Sidebar'
 import StatsCard from "../components/finance/StatsCard.tsx";
 import ActionCard from '../components/finance/ActionCard'
 import Card from '../components/ui/Card'
@@ -12,18 +11,19 @@ import SavingForm from '../components/finance/SavingForm'
 import { Saving } from "../assets/icons";
 import TransactionForm from "../components/finance/TransactionForm.tsx";
 import StatisticsChart from '../components/finance/StatisticsChart'
+import type { Saving as SavingType } from '../types/finance.ts'
 
 export default function FinancePage() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'learning' | 'finance'>('finance')
-
     const [isSavingModalOpen, setIsSavingModalOpen] = useState(false)
     const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
     const [isOutcomeModalOpen, setIsOutcomeModalOpen] = useState(false)
 
     const { transactions, addTransaction, loading } = useTransactions()
-    const { savings, addSaving, updateSaving } = useSavings()
+    const { savings, addSaving, updateSaving, deleteSaving} = useSavings()
 
-    // Calculate stats from transactions
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+    const [savingToDelete, setSavingToDelete] = useState<SavingType | null>(null)
+
     const stats = {
         balance: 0,
         totalIncome: 0,
@@ -71,7 +71,7 @@ export default function FinancePage() {
     const handleAddOutcome = (amount: number, category: string, description?: string) => {
         addTransaction({
             type: 'outcome',
-            amount: -amount, // Negative for outcome
+            amount: -amount,
             category,
             date: new Date(),
             description
@@ -92,18 +92,16 @@ export default function FinancePage() {
         setIsSavingModalOpen(false)
     }
 
-    // Calculate outcome percentages for bars
     const outcomeItems = stats.spending
         ? Object.entries(stats.spending)
-            .sort(([, a], [, b]) => b - a)  // Terbesar → terkecil
+            .sort(([, a], [, b]) => b - a)
             .map(([label, value]) => ({
                 label,
                 value,
                 percentage: (value / (stats.totalOutcome || 1)) * 100
             }))
-            .slice(0, 10)  // Max 10
+            .slice(0, 10)
         : []
-
 
     const [actionType, setActionType] = useState<'deposit' | 'withdraw'>('deposit')
     const [selectedSavingId, setSelectedSavingId] = useState('')
@@ -126,7 +124,6 @@ export default function FinancePage() {
             const saving = savings.find(s => s.id === selectedSavingId)
             if (!saving) return
 
-            // Simulate deposit/withdraw via updateSaving
             const newBalance = actionType === 'deposit'
                 ? saving.balance + amount
                 : saving.balance - amount
@@ -174,7 +171,7 @@ export default function FinancePage() {
     }
 
     const getBalanceChange = (transactions: any[]): string => {
-        return getMonthlyChange(transactions, 'income') // Simplified
+        return getMonthlyChange(transactions, 'income')
     }
 
     const outcomeColors = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500']
@@ -183,9 +180,6 @@ export default function FinancePage() {
 
     return (
         <div className="font-inconsola font-semibold min-h-screen h-screen bg-main text-slate-100 flex overflow-hidden">
-            {/* Sidebar */}
-            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-
             {/* Main Content - 2 Columns */}
             <main className="flex-1 bg-main overflow-hidden flex flex-col">
                 <div className="flex-1 p-8 overflow-hidden flex flex-col">
@@ -206,13 +200,13 @@ export default function FinancePage() {
                                     <StatsCard
                                         label="Incomes"
                                         value={formatCurrencyCompact(stats.totalIncome)}
-                                        change={getBalanceChange(transactions)}
+                                        change={getMonthlyChange(transactions, 'income')}
                                         icon="$"
                                     />
                                     <StatsCard
                                         label="Outcomes"
                                         value={formatCurrencyCompact(stats.totalOutcome)}
-                                        change={getBalanceChange(transactions)}
+                                        change={getMonthlyChange(transactions, 'outcome')}
                                         icon="$"
                                         invertChange={true}
                                     />
@@ -261,21 +255,40 @@ export default function FinancePage() {
                                 <Card className="bg-main border border-line flex flex-col overflow-hidden">
                                     <h3 className="text-sm font-semibold text-slate-400 mb-4 flex-shrink-0">Savings</h3>
 
-                                    {/* Savings Container */}
+                                    {/* Scrollable savings container */}
                                     <div className="flex-1 overflow-y-auto pr-2 savings-scroll">
                                         {savings && savings.length > 0 ? (
                                             <div className="space-y-3">
                                                 {savings.map((saving) => (
-                                                    <div key={saving.id} className="bg-secondary rounded-lg p-4 border border-line flex-shrink-0">
-                                                        <div className="flex justify-between items-center mb-2">
+                                                    <div
+                                                        key={saving.id}
+                                                        className="bg-secondary rounded-lg p-4 border border-line flex-shrink-0 group relative"
+                                                    >
+                                                        {/* DELETE BUTTON */}
+                                                        <button
+                                                            onClick={() => {
+                                                                setSavingToDelete(saving)
+                                                                setDeleteConfirmId(saving.id)
+                                                            }}
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100
+                                                                       w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40
+                                                                       border border-red-400/50 flex items-center justify-center
+                                                                       text-red-300 hover:text-red-100 text-xs font-bold transition-all hover:scale-110"
+                                                            title="Hapus saving"
+                                                        >
+                                                            ×
+                                                        </button>
+
+                                                        <div className="flex justify-between items-start mb-2 pt-1 pr-8">
                                                             <span className="text-xs font-semibold text-slate-400">{saving.name}</span>
-                                                            <span className="text-xs text-slate-400">
-                                                              {saving.target
-                                                                  ? `Rp ${saving.balance.toLocaleString()} / ${saving.target.toLocaleString()}`
-                                                                  : `Rp ${saving.balance.toLocaleString()}`
-                                                              }
+                                                            <span className="text-xs text-slate-400 ml-2">
+                                                                {saving.target
+                                                                    ? `Rp ${saving.balance.toLocaleString()} / ${saving.target.toLocaleString()}`
+                                                                    : `Rp ${saving.balance.toLocaleString()}`
+                                                                }
                                                             </span>
                                                         </div>
+
                                                         {saving.target && (
                                                             <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
                                                                 <div
@@ -285,7 +298,7 @@ export default function FinancePage() {
                                                             </div>
                                                         )}
                                                         {saving.description && (
-                                                            <p className="text-xs text-slate-500 mt-2">{saving.description}</p>
+                                                            <p className="text-xs text-slate-500 mt-2 line-clamp-2">{saving.description}</p>
                                                         )}
                                                     </div>
                                                 ))}
@@ -304,7 +317,7 @@ export default function FinancePage() {
                         {/* RIGHT COLUMN */}
                         <div className="flex flex-col space-y-4 overflow-hidden">
                             <div className="flex-1 mt-4 space-y-4 overflow-hidden">
-                                {/* Bottom: FULL SAVINGS */}
+                                {/* Savings */}
                                 <div className="flex flex-col space-y-2">
                                     <ActionCard
                                         title="New Income"
@@ -333,7 +346,6 @@ export default function FinancePage() {
                                     className="w-full border h-[62.5%] border-line rounded-lg object-cover object-bottom"
                                 />
                             </div>
-
 
                             {/* Savings Actions */}
                             <Card className="bg-main border border-line">
@@ -447,6 +459,57 @@ export default function FinancePage() {
                     onCancel={() => setIsOutcomeModalOpen(false)}
                 />
             </Modal>
+
+            {/* DELETE CONFIRM MODAL */}
+            {savingToDelete && deleteConfirmId && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => {
+                        setDeleteConfirmId(null)
+                        setSavingToDelete(null)
+                    }}
+                    title="Hapus Saving?"
+                >
+                    <div className="space-y-4 text-center p-6">
+                        <p className="text-slate-300 text-sm">
+                            Apakah kamu yakin ingin menghapus <strong className="text-white">"{savingToDelete.name}"</strong>?
+                        </p>
+                        <div className="text-xs text-slate-500 bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                            💰 Saldo <strong>Rp {savingToDelete.balance.toLocaleString()}</strong> akan hilang selamanya
+                        </div>
+                        <div className="flex gap-3 pt-6">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        if (deleteConfirmId) {
+                                            await deleteSaving(deleteConfirmId)
+                                            setDeleteConfirmId(null)
+                                            setSavingToDelete(null)
+                                        }
+                                    } catch (error) {
+                                        console.error('Delete failed:', error)
+                                        alert('Gagal hapus saving!')
+                                    }
+                                }}
+                                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-mono
+                                           py-3 px-6 rounded-lg border border-red-400 transition-all font-semibold"
+                            >
+                                Hapus Permanen
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setDeleteConfirmId(null)
+                                    setSavingToDelete(null)
+                                }}
+                                className="flex-1 bg-slate-800/50 hover:bg-slate-700 text-slate-300
+                                           font-mono py-3 px-6 rounded-lg border border-slate-600 transition-all font-semibold"
+                            >
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     )
 }
