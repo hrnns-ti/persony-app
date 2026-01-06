@@ -3,10 +3,18 @@ interface StatsCardProps {
     value: string | number;
     change?: string;
     icon?: string;
+    invertChange?: boolean;  // ✅ Fix: boolean, bukan false
 }
 
-export default function StatsCard({ label, value, change, icon = '{$}' }: StatsCardProps) {
-    const isPositive = change?.startsWith('+');
+export default function StatsCard({
+                                      label,
+                                      value,
+                                      change,
+                                      icon = '$',
+                                      invertChange = false
+                                  }: StatsCardProps) {
+    const isPositive = change?.startsWith('+') ?? false;
+    const shouldBePositive = invertChange ? !isPositive : isPositive;
 
     return (
         <div className="bg-main border border-line rounded-lg my-4 p-6 hover:border-slate-600 transition-all">
@@ -18,8 +26,12 @@ export default function StatsCard({ label, value, change, icon = '{$}' }: StatsC
             <p className="text-3xl font-bold text-white mb-2 py-2">{value}</p>
 
             {change && (
-                <p className={`text-xs font-semibold ${isPositive ? 'text-green' : 'text-red'}`}>
-                    {change} since last month
+                <p className={`text-xs font-semibold ${
+                    shouldBePositive
+                        ? 'text-green'
+                        : 'text-red'
+                }`}>
+                    {change}
                 </p>
             )}
         </div>

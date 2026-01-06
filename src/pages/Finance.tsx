@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Sidebar from '../components/dashboard/Sidebar'
-import StatsCard from '../components/finance/StatsCard'
+import StatsCard from "../components/finance/StatsCard.tsx";
 import ActionCard from '../components/finance/ActionCard'
 import Card from '../components/ui/Card'
 import IncomeIcon from '../assets/icons/income.tsx'
@@ -50,7 +50,7 @@ export default function FinancePage() {
     }
 
     const handleNewIncome = () => {
-        setIsIncomeModalOpen(true) // ✅ TRIGGER MODAL, BUKAN HARDCODED
+        setIsIncomeModalOpen(true)
     }
 
     const handleAddIncome = (amount: number, category: string, description?: string) => {
@@ -145,6 +145,38 @@ export default function FinancePage() {
         }
     }
 
+    const formatCurrencyCompact = (value: number): string => {
+        const absValue = Math.abs(value)
+        if (absValue >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`
+        if (absValue >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+        if (absValue >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+        return value.toLocaleString()
+    }
+
+    const getMonthlyChange = (transactions: any[], type: 'income' | 'outcome'): string => {
+        const now = new Date()
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+        const thisMonthData = transactions
+            .filter(t => t.type === type && new Date(t.date) >= thisMonth)
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+        const lastMonthData = transactions
+            .filter(t => t.type === type && new Date(t.date) >= lastMonth && new Date(t.date) < thisMonth)
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+        if (lastMonthData === 0) return '∞% since last month'
+
+        const change = ((thisMonthData - lastMonthData) / lastMonthData) * 100
+        const sign = change >= 0 ? '+' : ''
+        return `${sign}${change.toFixed(1)}% since last month`
+    }
+
+    const getBalanceChange = (transactions: any[]): string => {
+        return getMonthlyChange(transactions, 'income') // Simplified
+    }
+
     const outcomeColors = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500']
 
     if (loading) return <div className="flex items-center justify-center h-screen text-white">Loading...</div>
@@ -163,25 +195,26 @@ export default function FinancePage() {
 
                             {/* ROW 1: Stats */}
                             <div className="space-y-2 flex-shrink-0">
-                                {/* SUB-ROW 1: Stats Cards - DYNAMIC DATA */}
+                                {/* Stats Cards */}
                                 <div className="grid grid-cols-3 gap-4">
                                     <StatsCard
                                         label="Balance"
-                                        value={`${(stats.balance / 1000).toFixed(1)} K`}
-                                        change={stats.balance > 0 ? '+15.8%' : '-2.3%'}
-                                        icon="{$}"
+                                        value={formatCurrencyCompact(stats.balance)}
+                                        change={getBalanceChange(transactions)}
+                                        icon="$"
                                     />
                                     <StatsCard
                                         label="Incomes"
-                                        value={`${(stats.totalIncome / 1000).toFixed(1)} K`}
-                                        change="+9.2%"
-                                        icon="{$}"
+                                        value={formatCurrencyCompact(stats.totalIncome)}
+                                        change={getBalanceChange(transactions)}
+                                        icon="$"
                                     />
                                     <StatsCard
                                         label="Outcomes"
-                                        value={`${(stats.totalOutcome / 1000).toFixed(1)} K`}
-                                        change="-8.3%"
-                                        icon="{$}"
+                                        value={formatCurrencyCompact(stats.totalOutcome)}
+                                        change={getBalanceChange(transactions)}
+                                        icon="$"
+                                        invertChange={true}
                                     />
                                 </div>
                             </div>
@@ -303,8 +336,8 @@ export default function FinancePage() {
 
 
                             {/* Savings Actions */}
-                            <Card className="bg-main border border-line p-2">
-                                <h3 className="text-sm text-slate-400 m-4 tracking-wider">
+                            <Card className="bg-main border border-line">
+                                <h3 className="text-sm text-slate-400 mb-16 mx-2 tracking-wider">
                                     Saving Transaction
                                 </h3>
 
@@ -369,8 +402,8 @@ export default function FinancePage() {
                                 <button
                                     onClick={handleDepositWithdraw}
                                     disabled={!selectedSavingId || amount <= 0}
-                                    className="w-[93%] m-[7%] py-4 px-4 text-sm bg-secondary hover:from-secondary border border-line disabled:cursor-not-allowed text-white rounded-md  transition-all duration-300 font-mono tracking-wide
-                                    hover:bg-gradient-to-r hover:from-emerald-500/20 hover:to-emerald-600/20 hover:border-emerald-500/50 hover:text-emerald-200"
+                                    className="w-[93.3%] bg-secondary mx-2 py-4 text-sm bg-secondary hover:from-secondary border border-line disabled:cursor-not-allowed text-white rounded-md  transition-all duration-300 font-mono tracking-wide
+                                    hover:border-emerald-500/50 hover:text-emerald-400"
                                 >
                                     {actionType === 'deposit' ? 'DEPOSIT' : 'WITHDRAW'}
                                 </button>
