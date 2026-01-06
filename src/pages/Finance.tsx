@@ -271,9 +271,9 @@ export default function FinancePage() {
                                                                 setDeleteConfirmId(saving.id)
                                                             }}
                                                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100
-                                                                       w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40
-                                                                       border border-red-400/50 flex items-center justify-center
-                                                                       text-red-300 hover:text-red-100 text-xs font-bold transition-all hover:scale-110"
+                                                                       w-6 h-6 rounded-md bg-main
+                                                                       border border-slate-400 hover:border-red flex items-center justify-center
+                                                                       text-slate-400 hover:text-red text-xs font-bold transition-all"
                                                             title="Hapus saving"
                                                         >
                                                             ×
