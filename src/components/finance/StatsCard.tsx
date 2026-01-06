@@ -3,7 +3,7 @@ interface StatsCardProps {
     value: string | number;
     change?: string;
     icon?: string;
-    invertChange?: boolean;  // ✅ Fix: boolean, bukan false
+    invertChange?: boolean;
 }
 
 export default function StatsCard({

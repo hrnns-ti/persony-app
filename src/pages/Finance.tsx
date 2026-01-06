@@ -163,7 +163,7 @@ export default function FinancePage() {
             .filter(t => t.type === type && new Date(t.date) >= lastMonth && new Date(t.date) < thisMonth)
             .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-        if (lastMonthData === 0) return '∞% since last month'
+        if (lastMonthData === 0) return ''
 
         const change = ((thisMonthData - lastMonthData) / lastMonthData) * 100
         const sign = change >= 0 ? '+' : ''
@@ -468,16 +468,16 @@ export default function FinancePage() {
                         setDeleteConfirmId(null)
                         setSavingToDelete(null)
                     }}
-                    title="Hapus Saving?"
+                    title="Delete Saving?"
                 >
                     <div className="space-y-4 text-center p-6">
                         <p className="text-slate-300 text-sm">
-                            Apakah kamu yakin ingin menghapus <strong className="text-white">"{savingToDelete.name}"</strong>?
+                            Are you sure to delete <strong className="text-white">"{savingToDelete.name}"</strong>?
                         </p>
-                        <div className="text-xs text-slate-500 bg-red-500/10 p-4 rounded-lg border border-red-500/30">
-                            💰 Saldo <strong>Rp {savingToDelete.balance.toLocaleString()}</strong> akan hilang selamanya
+                        <div className="text-xs text-slate-500 px-4 pb-14 rounded-md">
+                            Balance <strong>Rp {savingToDelete.balance.toLocaleString()}</strong> will disappear
                         </div>
-                        <div className="flex gap-3 pt-6">
+                        <div className="flex gap-24 pt-6">
                             <button
                                 onClick={async () => {
                                     try {
@@ -491,20 +491,20 @@ export default function FinancePage() {
                                         alert('Gagal hapus saving!')
                                     }
                                 }}
-                                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-mono
-                                           py-3 px-6 rounded-lg border border-red-400 transition-all font-semibold"
+                                className="flex-1 bg-main  hover:text-red font-mono
+                                           py-3 mx-6 rounded-md border border-red transition-all font-semibold"
                             >
-                                Hapus Permanen
+                                Delete Permanently
                             </button>
                             <button
                                 onClick={() => {
                                     setDeleteConfirmId(null)
                                     setSavingToDelete(null)
                                 }}
-                                className="flex-1 bg-slate-800/50 hover:bg-slate-700 text-slate-300
-                                           font-mono py-3 px-6 rounded-lg border border-slate-600 transition-all font-semibold"
+                                className="flex-1 bg-secondary hover:bg-slate-800 text-slate-300
+                                           font-mono py-3 mx-6 rounded-md border border-line transition-all"
                             >
-                                Batal
+                                Cancel
                             </button>
                         </div>
                     </div>

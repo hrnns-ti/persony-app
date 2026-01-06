@@ -19,7 +19,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             {/* Modal */}
             <div className="relative bg-main border border-line rounded-lg shadow-3xl w-[50%] mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between  p-6">
+                <div className="flex items-center justify-between   ml-4 mt-2 p-6">
                     <h2 className="text-xl font-semibold text-white">{title}</h2>
                     <button
                         onClick={onClose}

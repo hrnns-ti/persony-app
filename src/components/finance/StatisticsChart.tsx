@@ -187,8 +187,9 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({ transactions = [], he
                     <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                         <CartesianGrid
                             vertical={false}
-                            stroke="rgba(148, 163, 184, 0.08)"
+                            stroke="rgba(148, 163, 184, 0.18)"
                             strokeDasharray="4 4"
+
                         />
                         <XAxis
                             dataKey="date"
@@ -217,6 +218,18 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({ transactions = [], he
                         {/* 3 Lines */}
                         <Line
                             type="monotone"
+                            dataKey="balance"
+                            stroke="#3b82f6"
+                            strokeWidth={2.5}
+                            dot={false}
+                            activeDot={{ r: 5 }}
+                            name="Balance"
+                            strokeDasharray="4, 4"
+                            animationDuration={600}
+                            isAnimationActive={true}
+                        />
+                        <Line
+                            type="monotone"
                             dataKey="income"
                             stroke="#10b981"
                             strokeWidth={2.5}
@@ -234,17 +247,6 @@ const StatisticsChart: React.FC<StatisticsChartProps> = ({ transactions = [], he
                             dot={false}
                             activeDot={{ r: 5 }}
                             name="Outcome"
-                            animationDuration={600}
-                            isAnimationActive={true}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="balance"
-                            stroke="#3b82f6"
-                            strokeWidth={2.5}
-                            dot={false}
-                            activeDot={{ r: 5 }}
-                            name="Balance"
                             animationDuration={600}
                             isAnimationActive={true}
                         />
