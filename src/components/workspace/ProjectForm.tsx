@@ -55,7 +55,6 @@ export default function ProjectForm({
         setSavedColors(updated);
     }
 
-
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!form.title.trim()) return;
@@ -92,7 +91,7 @@ export default function ProjectForm({
                 />
             </div>
 
-            {/* Status (kolom kedua bisa dipakai nanti) */}
+            {/* Status */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs text-slate-400">Status</label>
@@ -110,9 +109,7 @@ export default function ProjectForm({
                         <option value="canceled">Canceled</option>
                     </select>
                 </div>
-
-                {/* Slot kosong untuk future field (course, dsb.) */}
-                {/* <div className="space-y-1">...</div> */}
+                {/* Slot kosong untuk field lain nanti */}
             </div>
 
             {/* Deadline */}
@@ -145,7 +142,7 @@ export default function ProjectForm({
                 />
             </div>
 
-            {/* Color + Recent */}
+            {/* Color + Saved Colors */}
             <div className="space-y-1">
                 <label className="text-xs text-slate-400">Color</label>
                 <div className="flex items-center gap-3">
@@ -174,21 +171,20 @@ export default function ProjectForm({
                                 className="relative h-6 w-6 rounded-full border border-slate-700"
                                 style={{ backgroundColor: c }}
                             >
-                              <span
-                                  onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveSavedColor(c);
-                                  }}
-                                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-slate-900 text-[9px] text-slate-300 flex items-center justify-center border border-slate-600 hover:bg-red-600 hover:text-white"
-                              >
-                                ×
-                              </span>
+                <span
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveSavedColor(c);
+                    }}
+                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-slate-900 text-[9px] text-slate-300 flex items-center justify-center border border-slate-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                >
+                  ×
+                </span>
                             </button>
                         ))}
                     </div>
                 )}
             </div>
-
 
             {/* Description */}
             <div className="space-y-1">

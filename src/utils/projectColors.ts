@@ -5,7 +5,7 @@ export type SavedColors = string[];
 export function loadSavedProjectColors(): SavedColors {
     const raw = localStorage.getItem(SAVED_PROJECT_COLORS_KEY);
     if (!raw) {
-        return ['#6366f1', '#22c55e', '#eab308']; // default favorites
+        return ['#6366f1', '#22c55e', '#eab308'];
     }
     try {
         return JSON.parse(raw) as string[];

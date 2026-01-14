@@ -4,7 +4,8 @@ export interface Course {
     title: string;
     code: string;
     description?: string;
-    courseStatus: 'active' | 'completed' | 'dropped';
+    status: 'active' | 'completed' | 'dropped';
+    semester: string;
     startDate: Date;
     endDate?: Date;
     instructor?: string;
