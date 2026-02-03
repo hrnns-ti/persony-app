@@ -10,7 +10,7 @@ export default function WorkspacePage() {
                     <div className="flex flex-col gap-4 overflow-hidden">
                         <CoursesSection/>
                     </div>
-                    <div className="flex flex-col grid grid-cols-3">
+                    <div className="flex flex-col grid grid-cols-4">
                         <div className="flex flex-col gap-4">
                             <ProjectsSection/>
                         </div>

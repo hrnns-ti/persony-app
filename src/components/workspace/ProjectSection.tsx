@@ -57,17 +57,16 @@ export default function ProjectsSection() {
                             </div>
 
                             <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                  {p.projectStatus}
-                </span>
+                                <span className="px-2 py-0.5 rounded-full border border-slate-700">
+                                    {p.projectStatus}
+                                </span>
                                 {p.deadline && (
-                                    <span>
-                    Due{' '}
+                                    <span>Due{' '}
                                         {p.deadline.toLocaleDateString(undefined, {
                                             month: 'short',
                                             day: 'numeric',
                                         })}
-                  </span>
+                                    </span>
                                 )}
                             </div>
                         </button>

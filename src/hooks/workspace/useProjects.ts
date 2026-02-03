@@ -1,4 +1,3 @@
-// src/hooks/useProjects.ts
 import { useEffect, useState } from 'react';
 import type { Project } from '../../types/workspace';
 import projectService from '../../services/workspace.service/project';

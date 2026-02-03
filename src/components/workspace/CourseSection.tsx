@@ -42,7 +42,6 @@ export default function CoursesSection() {
                 </button>
             </div>
 
-            {/* Scroll HANYA di area card */}
             <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
                 <div className="w-full max-w-full h-full flex gap-3 overflow-x-auto savings-scroll">
                     {loading && (
@@ -78,15 +77,15 @@ export default function CoursesSection() {
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs text-slate-400 space-x-1">
-                  <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
-                    {c.status}
-                  </span>
+                                    <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
+                                        {c.status}
+                                    </span>
 
                                     {c.startDate && c.endDate && (
                                         <span className="text-slate-500 text-[10px] truncate">
-                      {c.startDate.toLocaleDateString(undefined, { month: 'short' })} –{' '}
+                                            {c.startDate.toLocaleDateString(undefined, { month: 'short' })} –{' '}
                                             {c.endDate.toLocaleDateString(undefined, { month: 'short' })}
-                    </span>
+                                        </span>
                                     )}
                                 </div>
                             </div>
