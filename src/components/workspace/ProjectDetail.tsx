@@ -114,4 +114,4 @@ export default function ProjectDetail({ project, onClose }: ProjectDetailProps) 
             )}
         </div>
     );
-}
+}   

@@ -1,6 +1,5 @@
-// src/components/workspace/CourseForm.tsx
-import { useState } from 'react';
-import type { Course } from '../../types/workspace';
+import React, { useState } from 'react';
+import type { Course, CourseStatus } from '../../types/workspace';
 
 interface CourseFormProps {
     initial?: Partial<Course>;
@@ -14,14 +13,17 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
         code: initial?.code ?? '',
         semester: initial?.semester ?? '',
         description: initial?.description ?? '',
-        status: (initial?.status ?? 'active') as Course['status'],
-        startDate: initial?.startDate ? new Date(initial.startDate) : undefined,
-        endDate: initial?.endDate ? new Date(initial.endDate) : undefined,
+        status: (initial?.status ?? 'active') as CourseStatus,
+        startDate: initial?.startDate ? new Date(initial?.startDate) : undefined,
+        endDate: initial?.endDate ? new Date(initial?.endDate) : undefined,
         color: initial?.color ?? '#6366f1',
     });
     const [saving, setSaving] = useState(false);
 
-    function handleChange<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    function handleChange<K extends keyof typeof form>(
+        key: K,
+        value: (typeof form)[K]
+    ) {
         setForm((prev) => ({ ...prev, [key]: value }));
     }
 
@@ -31,16 +33,17 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
 
         setSaving(true);
         try {
-            await onSubmit({
+            const data: Omit<Course, 'id'> = {
                 title: form.title.trim(),
-                code: form.code.trim() || undefined,
-                semester: form.semester.trim() || undefined,
+                code: form.code.trim(),
+                semester: form.semester.trim(),
                 description: form.description.trim(),
                 status: form.status,
                 startDate: form.startDate,
                 endDate: form.endDate,
                 color: form.color,
-            });
+            };
+            await onSubmit(data);
         } finally {
             setSaving(false);
         }
@@ -48,6 +51,7 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Title */}
             <div className="space-y-1">
                 <label className="text-xs text-slate-400">Course Name</label>
                 <input
@@ -59,6 +63,7 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
                 />
             </div>
 
+            {/* Code & Status */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs text-slate-400">Code</label>
@@ -74,7 +79,7 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
                     <label className="text-xs text-slate-400">Status</label>
                     <select
                         value={form.status}
-                        onChange={(e) => handleChange('status', e.target.value as Course['status'])}
+                        onChange={(e) => handleChange('status', e.target.value as CourseStatus)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
                     >
                         <option value="active">Active</option>
@@ -84,6 +89,7 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
                 </div>
             </div>
 
+            {/* Semester & Color */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs text-slate-400">Semester</label>
@@ -106,6 +112,7 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
                 </div>
             </div>
 
+            {/* Description */}
             <div className="space-y-1">
                 <label className="text-xs text-slate-400">Description</label>
                 <textarea
@@ -117,6 +124,7 @@ export default function CourseForm({ initial, onSubmit, onCancel }: CourseFormPr
                 />
             </div>
 
+            {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs text-slate-400">Start Date</label>

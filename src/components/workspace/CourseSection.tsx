@@ -1,4 +1,3 @@
-// src/components/workspace/CoursesSection.tsx
 import { useState } from 'react';
 import { useCourses } from '../../hooks/workspace/useCourses';
 import CourseForm from './CourseForm';
@@ -29,7 +28,7 @@ export default function CoursesSection() {
     }
 
     return (
-        <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-full">
+        <div className="bg-main border border-line rounded-md p-6 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">My Courses</h2>
                 <button
@@ -43,63 +42,56 @@ export default function CoursesSection() {
                 </button>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                {loading && <p className="text-xs text-slate-500">Loading courses...</p>}
+            {/* Scroll HANYA di area card */}
+            <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+                <div className="w-full max-w-full h-full flex gap-3 overflow-x-auto savings-scroll">
+                    {loading && (
+                        <div className="flex items-center justify-center w-full h-32 text-xs text-slate-500">
+                            Loading courses...
+                        </div>
+                    )}
 
-                {!loading && courses.length === 0 && (
-                    <p className="text-xs text-slate-500">No courses yet. Add one to get started.</p>
-                )}
+                    {!loading && courses.length === 0 && (
+                        <div className="flex items-center justify-center w-full h-32 text-xs text-slate-500">
+                            No courses yet. Add one to get started.
+                        </div>
+                    )}
 
-                {!loading &&
-                    courses.map((c) => (
-                        <div
-                            key={c.id}
-                            className="group relative bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-xs flex flex-col gap-2 hover:bg-slate-850 transition-all cursor-pointer"
-                            onClick={() => {
-                                setEditing(c);
-                                setIsOpen(true);
-                            }}
-                        >
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                    <p className="text-slate-100 text-sm font-semibold">
-                                        {c.title}
-                                    </p>
-                                    {c.code && (
-                                        <p className="text-slate-400 text-[11px] mt-1">
-                                            {c.code} • {c.semester}
-                                        </p>
-                                    )}
-                                    {c.description && (
-                                        <p className="text-slate-500 text-[10px] line-clamp-2">
-                                            {c.description}
-                                        </p>
-                                    )}
-                                </div>
-                                <span
-                                    className="h-3 w-10 rounded-full flex-shrink-0 mt-1"
+                    {!loading &&
+                        courses.map((c) => (
+                            <div
+                                key={c.id}
+                                className="group relative bg-slate-900 border border-slate-800 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 hover:scale-105 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
+                                onClick={() => {
+                                    setEditing(c);
+                                    setIsOpen(true);
+                                }}
+                            >
+                                <div
+                                    className="h-2 rounded-xl mb-2 flex-shrink-0"
                                     style={{ backgroundColor: c.color || '#6366f1' }}
                                 />
-                            </div>
 
-                            <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                  {c.status}
-                </span>
-                                {c.startDate && c.endDate && (
-                                    <span>
-                    {c.startDate.toLocaleDateString(undefined, {
-                        month: 'short',
-                    })}{' '}
-                                        –{' '}
-                                        {c.endDate.toLocaleDateString(undefined, {
-                                            month: 'short',
-                                        })}
+                                <div className="flex-1 mb-2">
+                                    <p className="text-slate-100 text-sm font-semibold line-clamp-2 mb-1">{c.title}</p>
+                                    {c.code && <p className="text-slate-400 text-xs">{c.code} • {c.semester}</p>}
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs text-slate-400 space-x-1">
+                  <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
+                    {c.status}
                   </span>
-                                )}
+
+                                    {c.startDate && c.endDate && (
+                                        <span className="text-slate-500 text-[10px] truncate">
+                      {c.startDate.toLocaleDateString(undefined, { month: 'short' })} –{' '}
+                                            {c.endDate.toLocaleDateString(undefined, { month: 'short' })}
+                    </span>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                </div>
             </div>
 
             <Modal
@@ -120,11 +112,7 @@ export default function CoursesSection() {
                 />
             </Modal>
 
-            <Modal
-                isOpen={!!confirmDelete}
-                onClose={() => setConfirmDelete(null)}
-                title="Delete Course"
-            >
+            <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete Course">
                 <div className="space-y-4 text-sm text-slate-300">
                     <p>
                         Are you sure you want to delete{' '}
