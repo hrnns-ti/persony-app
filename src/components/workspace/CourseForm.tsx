@@ -24,7 +24,6 @@ function toDateInputValue(d?: Date | string) {
     if (!d) return "";
     const date = typeof d === "string" ? new Date(d) : d;
     if (Number.isNaN(date.getTime())) return "";
-    // pakai UTC agar stabil
     const yyyy = date.getUTCFullYear();
     const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
     const dd = String(date.getUTCDate()).padStart(2, "0");
@@ -33,7 +32,6 @@ function toDateInputValue(d?: Date | string) {
 
 function dateFromInput(value: string): Date | undefined {
     if (!value) return undefined;
-    // local midnight (lebih aman daripada new Date(value) yang bisa geser timezone)
     return new Date(`${value}T00:00:00`);
 }
 
@@ -51,7 +49,6 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
         color: initial?.color ?? "#6366f1",
     });
 
-    // ✅ reset saat initial berubah (misalnya buka modal edit course lain)
     useEffect(() => {
         setForm({
             title: initial?.title ?? "",
@@ -63,8 +60,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
             endDate: toDateInputValue(initial?.endDate as any),
             color: initial?.color ?? "#6366f1",
         });
-    }, [initial?.id]); // cukup id agar tidak reset tiap render
-
+    }, [initial?.id]);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const busy = saving || deleting;

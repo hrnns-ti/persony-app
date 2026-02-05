@@ -22,7 +22,6 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
         const prevOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
 
-        // focus panel (optional tapi bagus)
         requestAnimationFrame(() => panelRef.current?.focus());
 
         return () => {
