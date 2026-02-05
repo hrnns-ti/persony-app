@@ -50,7 +50,6 @@ function clamp(n: number, min: number, max: number) {
     return Math.max(min, Math.min(max, n));
 }
 
-/** ✅ Opsi B: custom stepper (tanpa spinner) */
 function TinyNumberStepper({
                                value,
                                onChange,
@@ -294,8 +293,6 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                             className="tiny-slider"
                             style={{ ["--value" as any]: form.progress }}
                         />
-
-                        {/* ✅ ganti input number jadi stepper custom */}
                         <TinyNumberStepper
                             value={form.progress}
                             onChange={(v) => handleChange("progress", v)}
@@ -338,7 +335,7 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
             <SavedColorPicker
                 value={form.color}
                 onChange={(c) => handleChange("color", c)}
-                storageKey="savedColor"
+                storageKey="saved color"
             />
 
             {/* Tags */}

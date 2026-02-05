@@ -1,55 +1,55 @@
-import { useState } from 'react';
-import { useProjects } from '../../hooks/workspace/useProjects';
-import ProjectForm from './ProjectForm';
-import type { Project } from '../../types/workspace';
+import { useState } from "react";
+import ProjectForm from "./ProjectForm";
+import type { Project } from "../../types/workspace";
 
 interface ProjectDetailProps {
     project: Project;
     onClose: () => void;
+    onUpdate: (id: string, data: Omit<Project, "id">) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
 }
 
-export default function ProjectDetail({ project, onClose }: ProjectDetailProps) {
-    const { updateProject, removeProject } = useProjects();
+export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: ProjectDetailProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
 
-    async function handleUpdate(data: Omit<Project, 'id'>) {
-        await updateProject(project.id, data);
+    async function handleUpdate(data: Omit<Project, "id">) {
+        await onUpdate(project.id, data);
         setIsEditing(false);
     }
 
     async function handleDelete() {
-        await removeProject(project.id);
+        await onDelete(project.id);
         onClose();
     }
+
+    const deadline =
+        project.deadline instanceof Date
+            ? project.deadline
+            : project.deadline
+                ? new Date(project.deadline as any)
+                : null;
 
     return (
         <div className="space-y-4">
             {!isEditing ? (
                 <>
-                    {/* Detail view */}
                     <div className="flex items-start justify-between">
                         <h3 className="text-lg font-bold text-white">{project.title}</h3>
-                        <span
-                            className="h-3 w-10 rounded-full"
-                            style={{ backgroundColor: project.color }}
-                        />
+                        <span className="h-3 w-10 rounded-full" style={{ backgroundColor: project.color }} />
                     </div>
 
-                    {project.description && (
-                        <p className="text-slate-300 text-sm">{project.description}</p>
-                    )}
+                    {project.description && <p className="text-slate-300 text-sm">{project.description}</p>}
 
                     <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="px-2 py-1 rounded-full border border-slate-700">
-              {project.projectStatus}
-            </span>
-                        {project.deadline && (
+                        <span className="px-2 py-1 rounded-full border border-slate-700">{project.projectStatus}</span>
+
+                        {deadline && !Number.isNaN(deadline.getTime()) && (
                             <span>
-                Due{' '}
-                                {project.deadline.toLocaleDateString(undefined, {
-                                    month: 'short',
-                                    day: 'numeric',
+                Due{" "}
+                                {deadline.toLocaleDateString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
                                 })}
               </span>
                         )}
@@ -66,7 +66,6 @@ export default function ProjectDetail({ project, onClose }: ProjectDetailProps) 
                         </a>
                     )}
 
-                    {/* Actions */}
                     <div className="flex gap-2 pt-2">
                         <button
                             onClick={() => setIsEditing(true)}
@@ -83,14 +82,9 @@ export default function ProjectDetail({ project, onClose }: ProjectDetailProps) 
                     </div>
                 </>
             ) : (
-                <ProjectForm
-                    initial={project}
-                    onSubmit={handleUpdate}
-                    onCancel={() => setIsEditing(false)}
-                />
+                <ProjectForm initial={project} onSubmit={handleUpdate} onCancel={() => setIsEditing(false)} />
             )}
 
-            {/* Delete confirmation */}
             {confirmDelete && (
                 <div className="space-y-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <p className="text-sm text-slate-300">
@@ -114,4 +108,4 @@ export default function ProjectDetail({ project, onClose }: ProjectDetailProps) 
             )}
         </div>
     );
-}   
+}

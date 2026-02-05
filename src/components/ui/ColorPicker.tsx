@@ -41,7 +41,6 @@ export default function SavedColorPicker({
 
     const normalizedValue = useMemo(() => (value || '#6366f1').toLowerCase(), [value]);
 
-    // ✅ sinkron: dengarkan perubahan dari tab lain (storage) + dari komponen lain di tab yang sama (custom event)
     useEffect(() => {
         const sync = () => setSavedColors(readColors(storageKey));
 
@@ -57,7 +56,6 @@ export default function SavedColorPicker({
         window.addEventListener('storage', onStorage);
         window.addEventListener('saved-colors:update', onCustom);
 
-        // initial sync saat storageKey berubah
         sync();
 
         return () => {
@@ -70,7 +68,6 @@ export default function SavedColorPicker({
         setSavedColors(next);
         writeColors(storageKey, next);
 
-        // ✅ trigger update untuk instance lain di tab yang sama
         window.dispatchEvent(new CustomEvent('saved-colors:update', { detail: { key: storageKey } }));
     }
 
@@ -114,15 +111,15 @@ export default function SavedColorPicker({
                             style={{ backgroundColor: c }}
                             title={c}
                         >
-              <span
-                  onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveSavedColor(c);
-                  }}
-                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-slate-900 text-[9px] text-slate-300 flex items-center justify-center border border-slate-600 hover:bg-red-600 hover:text-white cursor-pointer"
-              >
-                ×
-              </span>
+                              <span
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveSavedColor(c);
+                                  }}
+                                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-slate-900 text-[9px] text-slate-300 flex items-center justify-center border border-slate-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                              >
+                                ×
+                              </span>
                         </button>
                     ))}
                 </div>
