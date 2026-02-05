@@ -6,7 +6,7 @@ export interface Course {
     description?: string;
     status: 'active' | 'completed' | 'dropped';
     semester: string;
-    startDate: Date;
+    startDate?: Date;
     endDate?: Date;
     instructor?: string;
     credits?: number;
