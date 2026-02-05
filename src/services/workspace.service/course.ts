@@ -1,18 +1,32 @@
-import type { Course } from '../../types/workspace';
+import type { Course } from "../../types/workspace";
 
-const STORAGE_KEY = 'persony_workspace_courses';
+const STORAGE_KEY = "persony_workspace_courses";
+
+function toDate(v: unknown): Date | undefined {
+    if (!v) return undefined;
+    if (v instanceof Date) return Number.isNaN(v.getTime()) ? undefined : v;
+
+    if (typeof v === "string" || typeof v === "number") {
+        const d = new Date(v);
+        return Number.isNaN(d.getTime()) ? undefined : d;
+    }
+
+    return undefined;
+}
 
 class CourseService {
     private readRaw(): Course[] {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return [];
+
         try {
-            const parsed = JSON.parse(raw) as Course[];
-            return parsed.map((c) => ({
+            const parsed = JSON.parse(raw) as any[];
+
+            return (Array.isArray(parsed) ? parsed : []).map((c) => ({
                 ...c,
-                startDate: new Date(c.startDate),
-                endDate: c.endDate ? new Date(c.endDate) : undefined,
-            }));
+                startDate: toDate(c.startDate),
+                endDate: toDate(c.endDate),
+            })) as Course[];
         } catch {
             return [];
         }
@@ -26,7 +40,7 @@ class CourseService {
         return this.readRaw();
     }
 
-    async add(data: Omit<Course, 'id'>): Promise<Course> {
+    async add(data: Omit<Course, "id">): Promise<Course> {
         const all = this.readRaw();
         const course: Course = {
             ...data,
@@ -45,7 +59,10 @@ class CourseService {
         const updated: Course = {
             ...all[index],
             ...patch,
+            startDate: patch.startDate !== undefined ? toDate(patch.startDate) : all[index].startDate,
+            endDate: patch.endDate !== undefined ? toDate(patch.endDate) : all[index].endDate,
         };
+
         all[index] = updated;
         this.writeRaw(all);
         return updated;

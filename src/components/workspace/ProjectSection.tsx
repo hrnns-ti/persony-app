@@ -105,9 +105,8 @@ export default function ProjectsSection() {
                     <ProjectDetail
                         project={selectedProject}
                         onClose={() => setSelectedProject(null)}
-                        onUpdate={async (id, data) => {
-                            await updateProject(id, data);
-                            setSelectedProject(null);
+                        onUpdate={async (id, patch) => {
+                            await updateProject(id, patch);
                         }}
                         onDelete={async (id) => {
                             await removeProject(id);

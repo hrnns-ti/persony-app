@@ -1,4 +1,3 @@
-// src/services/workspace.service/project.service.ts
 import type { Project } from '../../types/workspace';
 
 const STORAGE_KEY = 'persony_workspace_projects';
