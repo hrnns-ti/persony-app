@@ -11,20 +11,41 @@ export default function CoursesSection() {
     const [editing, setEditing] = useState<Course | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<Course | null>(null);
 
+    function closeForm() {
+        setIsOpen(false);
+        setEditing(null);
+    }
+
+    function openCreate() {
+        setEditing(null);
+        setIsOpen(true);
+    }
+
+    function openEdit(course: Course) {
+        setEditing(course);
+        setIsOpen(true);
+    }
+
     async function handleSubmit(data: Omit<Course, 'id'>) {
         if (editing) {
             await updateCourse(editing.id, data);
-            setEditing(null);
         } else {
             await addCourse(data);
         }
-        setIsOpen(false);
+        closeForm();
     }
 
-    async function handleDelete() {
+    async function handleDeleteConfirmed() {
         if (!confirmDelete) return;
+
         await removeCourse(confirmDelete.id);
+
         setConfirmDelete(null);
+        // jaga-jaga, kalau yang dihapus sedang diedit
+        if (editing?.id === confirmDelete.id) {
+            setEditing(null);
+            setIsOpen(false);
+        }
     }
 
     return (
@@ -32,10 +53,7 @@ export default function CoursesSection() {
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">My Courses</h2>
                 <button
-                    onClick={() => {
-                        setEditing(null);
-                        setIsOpen(true);
-                    }}
+                    onClick={openCreate}
                     className="h-7 w-7 rounded-md flex items-center justify-center bg-main border border-line text-white text-sm hover:border-blue-400 hover:text-blue-400"
                 >
                     +
@@ -60,25 +78,25 @@ export default function CoursesSection() {
                         courses.map((c) => (
                             <div
                                 key={c.id}
-                                className="group relative bg-slate-900 border border-slate-800 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 hover:scale-105 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
-                                onClick={() => {
-                                    setEditing(c);
-                                    setIsOpen(true);
-                                }}
+                                className="group relative bg-slate-900 border border-slate-800 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
+                                onClick={() => openEdit(c)}
                             >
-                                <div
-                                    className="h-2 rounded-xl mb-2 flex-shrink-0"
-                                    style={{ backgroundColor: c.color || '#6366f1' }}
-                                />
+                                <div className="h-2 rounded-xl mb-2 flex-shrink-0" style={{ backgroundColor: c.color || '#6366f1' }}/>
 
                                 <div className="flex-1 mb-2">
-                                    <p className="text-slate-100 text-sm font-semibold line-clamp-2 mb-1">{c.title}</p>
-                                    {c.code && <p className="text-slate-400 text-xs">{c.code} • {c.semester}</p>}
+                                    <p className="text-slate-100 text-sm font-semibold line-clamp-2 mb-1">
+                                        {c.title}
+                                    </p>
+                                    {c.code && (
+                                        <p className="text-slate-400 text-xs">
+                                            {c.code} • {c.semester}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs text-slate-400 space-x-1">
                                     <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
-                                        {c.status}
+                                    {c.status}
                                     </span>
 
                                     {c.startDate && c.endDate && (
@@ -93,30 +111,32 @@ export default function CoursesSection() {
                 </div>
             </div>
 
-            <Modal
-                isOpen={isOpen}
-                onClose={() => {
-                    setIsOpen(false);
-                    setEditing(null);
-                }}
-                title={editing ? 'Edit Course' : 'Add Course'}
-            >
+            {/* Modal Form Add/Edit */}
+            <Modal isOpen={isOpen} onClose={closeForm} title={editing ? 'Edit Course' : 'Add Course'}>
                 <CourseForm
                     initial={editing ?? undefined}
                     onSubmit={handleSubmit}
-                    onCancel={() => {
+                    onCancel={closeForm}
+                    onDelete={() => {
+                        if (!editing) return;
                         setIsOpen(false);
-                        setEditing(null);
+                        setConfirmDelete(editing);
                     }}
                 />
             </Modal>
 
-            <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete Course">
+            {/* Confirm Delete Modal */}
+            <Modal
+                isOpen={!!confirmDelete}
+                onClose={() => setConfirmDelete(null)}
+                title="Delete Course"
+            >
                 <div className="space-y-4 text-sm text-slate-300">
                     <p>
                         Are you sure you want to delete{' '}
                         <span className="font-semibold">{confirmDelete?.title}</span>?
                     </p>
+
                     <div className="flex justify-end gap-2">
                         <button
                             type="button"
@@ -125,9 +145,10 @@ export default function CoursesSection() {
                         >
                             Cancel
                         </button>
+
                         <button
                             type="button"
-                            onClick={handleDelete}
+                            onClick={handleDeleteConfirmed}
                             className="px-4 py-1.5 text-xs rounded-md bg-red-600 text-white hover:bg-red-500"
                         >
                             Delete
