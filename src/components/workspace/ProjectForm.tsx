@@ -86,7 +86,7 @@ function TinyNumberStepper({
                 pattern="[0-9]*"
                 aria-label="Progress value"
                 onChange={(e) => {
-                    const digits = e.target.value.replace(/[^\d]/g, "");
+                    const digits = e.target.value.replace(/\D/g, "");
                     setText(digits);
 
                     if (digits === "") return; // biar user bisa hapus dulu saat mengetik
@@ -357,7 +357,7 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                 <textarea
                     value={form.description}
                     onChange={(e) => handleChange("description", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full bg-slate-900 border border-slate-700 savings-scroll rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     rows={3}
                     placeholder="Short description..."
                 />

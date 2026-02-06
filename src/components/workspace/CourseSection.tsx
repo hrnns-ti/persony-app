@@ -4,8 +4,8 @@ import CourseForm from './CourseForm';
 import Modal from '../ui/Modal';
 import type { Course } from '../../types/workspace';
 
-export default function CoursesSection() {
-    const { courses, addCourse, updateCourse, removeCourse, loading } = useCourses();
+export function CoursesSection() {
+    const {courses, addCourse, updateCourse, removeCourse, loading} = useCourses();
 
     const [isOpen, setIsOpen] = useState(false);
     const [editing, setEditing] = useState<Course | null>(null);
@@ -49,7 +49,7 @@ export default function CoursesSection() {
     }
 
     return (
-        <div className="bg-main border border-line rounded-md p-6 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
+        <div className="bg-main border border-line rounded-md p-4 flex flex-col h-[90%] min-h-0 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">My Courses</h2>
                 <button
@@ -81,7 +81,8 @@ export default function CoursesSection() {
                                 className="group relative bg-slate-900 border border-slate-800 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
                                 onClick={() => openEdit(c)}
                             >
-                                <div className="h-2 rounded-xl mb-2 flex-shrink-0" style={{ backgroundColor: c.color || '#6366f1' }}/>
+                                <div className="h-2 rounded-xl mb-2 flex-shrink-0"
+                                     style={{backgroundColor: c.color || '#6366f1'}}/>
 
                                 <div className="flex-1 mb-2">
                                     <p className="text-slate-100 text-sm font-semibold line-clamp-2 mb-1">
@@ -95,14 +96,15 @@ export default function CoursesSection() {
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs text-slate-400 space-x-1">
-                                    <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
+                                    <span
+                                        className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
                                     {c.status}
                                     </span>
 
                                     {c.startDate && c.endDate && (
                                         <span className="text-slate-500 text-[10px] truncate">
-                                            {c.startDate.toLocaleDateString(undefined, { month: 'short' })} –{' '}
-                                            {c.endDate.toLocaleDateString(undefined, { month: 'short' })}
+                                            {c.startDate.toLocaleDateString(undefined, {month: 'short'})} –{' '}
+                                            {c.endDate.toLocaleDateString(undefined, {month: 'short'})}
                                         </span>
                                     )}
                                 </div>

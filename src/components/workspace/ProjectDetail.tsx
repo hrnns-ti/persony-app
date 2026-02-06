@@ -213,18 +213,20 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                     </div>
 
                     {/* Description (compact) */}
-                    {desc ? (
-                        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-                            {desc}
-                        </p>
-                    ) : (
-                        <p className="text-[11px] text-slate-500">No description.</p>
-                    )}
-
-                    <div className="h-8" />
+                    {/* Description (max 3 lines, stable height) */}
+                    {/* Description (max 3 lines, stable height) */}
+                    <div className="min-h-[54px]">
+                        {desc ? (
+                            <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap line-clamp-3">
+                                {desc}
+                            </p>
+                        ) : (
+                            <p className="text-[11px] text-slate-500 italic">No description.</p>
+                        )}
+                    </div>
 
                     {/* Progress (compact) */}
-                    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+                    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 mt-4">
                         <div className="flex items-center justify-between">
                             <p className="text-xs text-slate-300">Progress</p>
                             <p className="text-xs text-slate-300 tabular-nums">{displayedProgress}%</p>
@@ -251,7 +253,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                     </div>
 
                     {/* Tasks panel */}
-                    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 space-y-2">
+                    <div className="rounded-lg border savings-scroll border-slate-800 bg-slate-900 p-3 space-y-2">
                         <div className="flex items-center justify-between">
                             <p className="text-xs font-semibold text-slate-300">Tasks</p>
 
@@ -275,7 +277,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                             </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 sav">
                             <input
                                 value={newTask}
                                 onChange={(e) => setNewTask(e.target.value)}
