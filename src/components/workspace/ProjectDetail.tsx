@@ -1,3 +1,4 @@
+// src/components/workspace/ProjectDetail.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import ProjectForm from "./ProjectForm";
 import type { Project } from "../../types/workspace";
@@ -37,6 +38,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
     const [tasks, setTasks] = useState<TaskItem[]>([]);
     const [newTask, setNewTask] = useState("");
     const [hideDone, setHideDone] = useState(false);
+
     const [syncProgressFromTasks, setSyncProgressFromTasks] = useState<boolean>(() => {
         try {
             const raw = localStorage.getItem(syncKey);
@@ -70,6 +72,14 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
         } catch {}
     }, [syncKey, syncProgressFromTasks]);
 
+    // ✅ IMPORTANT: kalau sync dimatikan, batalkan debounce yang mungkin masih pending
+    useEffect(() => {
+        if (!syncProgressFromTasks && debounceRef.current) {
+            window.clearTimeout(debounceRef.current);
+            debounceRef.current = null;
+        }
+    }, [syncProgressFromTasks]);
+
     const deadline =
         project.deadline instanceof Date
             ? project.deadline
@@ -84,13 +94,23 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
         return { total, done, progressFromTasks };
     }, [tasks]);
 
+    // ✅ IMPORTANT: progress hanya ambil dari tasks kalau sync ON; dan jika status done => 100
     const displayedProgress = clamp(
-        stats.progressFromTasks ?? (typeof project.progress === "number" ? project.progress : 0),
+        project.projectStatus === "done"
+            ? 100
+            : syncProgressFromTasks && stats.progressFromTasks != null
+                ? stats.progressFromTasks
+                : typeof project.progress === "number"
+                    ? project.progress
+                    : 0,
         0,
         100
     );
 
-    const visibleTasks = useMemo(() => (hideDone ? tasks.filter((t) => !t.done) : tasks), [tasks, hideDone]);
+    const visibleTasks = useMemo(
+        () => (hideDone ? tasks.filter((t) => !t.done) : tasks),
+        [tasks, hideDone]
+    );
 
     const desc = (project.description ?? "").trim();
 
@@ -118,11 +138,13 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
     function addTask() {
         const text = newTask.trim();
         if (!text) return;
+
         setTasks((prev) => {
             const next = [{ id: uid(), text, done: false, createdAt: Date.now() }, ...prev];
             persistTasks(next);
             return next;
         });
+
         setNewTask("");
     }
 
@@ -161,6 +183,19 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
         onClose();
     }
 
+    async function handleDone() {
+        // matikan sync supaya tidak balik ke task %
+        setSyncProgressFromTasks(false);
+
+        // batalkan debounce yang mungkin masih pending
+        if (debounceRef.current) {
+            window.clearTimeout(debounceRef.current);
+            debounceRef.current = null;
+        }
+
+        await onUpdate(project.id, { projectStatus: "done", progress: 100 });
+    }
+
     return (
         <div className="space-y-3">
             {!isEditing ? (
@@ -174,19 +209,19 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                             </div>
 
                             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                                <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                                  {project.projectStatus}
-                                </span>
+                <span className="px-2 py-0.5 rounded-full border border-slate-700">
+                  {project.projectStatus}
+                </span>
 
                                 {deadline && !Number.isNaN(deadline.getTime()) && (
                                     <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                                        Due {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                                    </span>
+                    Due {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
                                 )}
 
                                 <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                                    Tasks {stats.done}/{stats.total}
-                                </span>
+                  Tasks {stats.done}/{stats.total}
+                </span>
 
                                 {project.repoUrl && (
                                     <a
@@ -212,20 +247,16 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                         </button>
                     </div>
 
-                    {/* Description (compact) */}
-                    {/* Description (max 3 lines, stable height) */}
                     {/* Description (max 3 lines, stable height) */}
                     <div className="min-h-[54px]">
                         {desc ? (
-                            <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap line-clamp-3">
-                                {desc}
-                            </p>
+                            <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap line-clamp-3">{desc}</p>
                         ) : (
                             <p className="text-[11px] text-slate-500 italic">No description.</p>
                         )}
                     </div>
 
-                    {/* Progress (compact) */}
+                    {/* Progress */}
                     <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 mt-4">
                         <div className="flex items-center justify-between">
                             <p className="text-xs text-slate-300">Progress</p>
@@ -242,18 +273,19 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                     type="checkbox"
                                     checked={syncProgressFromTasks}
                                     onChange={(e) => setSyncProgressFromTasks(e.target.checked)}
+                                    disabled={project.projectStatus === "done"}
                                 />
                                 Sync progress from tasks
                             </label>
 
-                            {stats.progressFromTasks != null && (
+                            {syncProgressFromTasks && stats.progressFromTasks != null && (
                                 <span className="text-[11px] text-slate-500">Tasks → {stats.progressFromTasks}%</span>
                             )}
                         </div>
                     </div>
 
                     {/* Tasks panel */}
-                    <div className="rounded-lg border savings-scroll border-slate-800 bg-slate-900 p-3 space-y-2">
+                    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 space-y-2">
                         <div className="flex items-center justify-between">
                             <p className="text-xs font-semibold text-slate-300">Tasks</p>
 
@@ -277,7 +309,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                             </div>
                         </div>
 
-                        <div className="flex gap-2 sav">
+                        <div className="flex gap-2">
                             <input
                                 value={newTask}
                                 onChange={(e) => setNewTask(e.target.value)}
@@ -289,11 +321,12 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                 }}
                                 className="flex-1 bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
                                 placeholder="Add task…"
+                                disabled={project.projectStatus === "done"}
                             />
                             <button
                                 type="button"
                                 onClick={addTask}
-                                disabled={!newTask.trim()}
+                                disabled={!newTask.trim() || project.projectStatus === "done"}
                                 className="px-3 py-2 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50"
                             >
                                 Add
@@ -315,10 +348,15 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                             type="checkbox"
                                             checked={t.done}
                                             onChange={() => toggleTask(t.id)}
+                                            disabled={project.projectStatus === "done"}
                                         />
 
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-sm truncate ${t.done ? "text-slate-500 line-through" : "text-slate-100"}`}>
+                                            <p
+                                                className={`text-sm truncate ${
+                                                    t.done ? "text-slate-500 line-through" : "text-slate-100"
+                                                }`}
+                                            >
                                                 {t.text}
                                             </p>
                                         </div>
@@ -326,9 +364,10 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                         <button
                                             type="button"
                                             onClick={() => deleteTask(t.id)}
-                                            className="h-7 w-7 grid place-items-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
+                                            className="h-7 w-7 grid place-items-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
                                             aria-label="Delete task"
                                             title="Delete"
+                                            disabled={project.projectStatus === "done"}
                                         >
                                             ✕
                                         </button>
@@ -340,7 +379,26 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
 
                     {/* Action buttons */}
                     <div className="flex gap-2">
+                        {project.projectStatus !== "done" ? (
+                            <button
+                                type="button"
+                                onClick={handleDone}
+                                className="flex-1 px-3 py-2 text-xs rounded-md bg-emerald-600 text-white hover:bg-emerald-500"
+                            >
+                                Mark as Done
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => onUpdate(project.id, { projectStatus: "coding" })}
+                                className="flex-1 px-3 py-2 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800"
+                            >
+                                Reopen
+                            </button>
+                        )}
+
                         <button
+                            type="button"
                             onClick={() => setIsEditing(true)}
                             className="flex-1 px-3 py-2 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800"
                         >
@@ -348,6 +406,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                         </button>
 
                         <button
+                            type="button"
                             onClick={() => setConfirmDelete(true)}
                             className="flex-1 px-3 py-2 text-xs rounded-md border border-red-700/60 text-red-300 hover:bg-red-900/20"
                         >

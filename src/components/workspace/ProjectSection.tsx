@@ -1,8 +1,7 @@
-import { useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { useProjects } from "../../hooks/workspace/useProjects";
 import ProjectDetail from "./ProjectDetail";
 import Modal from "../ui/Modal";
-import type { Project } from "../../types/workspace";
 import ProjectForm from "./ProjectForm";
 
 function truncate(text: string, max = 50) {
@@ -41,7 +40,17 @@ function ProgressBar({
 
 export default function ProjectsSection() {
     const { projects, loading, error, addProject, updateProject, removeProject } = useProjects();
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+    const selectedProject = useMemo(
+        () => projects.find((p) => p.id === selectedProjectId) ?? null,
+        [projects, selectedProjectId]
+    );
+
+
+    useEffect(() => {
+        if (selectedProjectId && !selectedProject) setSelectedProjectId(null);
+    }, [selectedProjectId, selectedProject]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     return (
@@ -84,7 +93,7 @@ export default function ProjectsSection() {
                             return (
                                 <button
                                     key={p.id}
-                                    onClick={() => setSelectedProject(p)}
+                                    onClick={() => setSelectedProjectId(p.id)}
                                     className="snap-start flex-shrink-0 w-[270px] bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-xs flex flex-col gap-2 hover:bg-slate-850 transition-all cursor-pointer"
                                 >
                                     <div className="flex items-start gap-2">
@@ -116,18 +125,17 @@ export default function ProjectsSection() {
                                     </div>
 
                                     <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                      {p.projectStatus}
-                    </span>
-
+                                        <span className="px-2 py-0.5 rounded-full border border-slate-700">
+                                          {p.projectStatus}
+                                        </span>
                                         {deadline && !Number.isNaN(deadline.getTime()) && (
                                             <span>
-                        Due{" "}
+                                                Due{" "}
                                                 {deadline.toLocaleDateString(undefined, {
                                                     month: "short",
                                                     day: "numeric",
                                                 })}
-                      </span>
+                                            </span>
                                         )}
                                     </div>
                                 </button>
@@ -152,18 +160,18 @@ export default function ProjectsSection() {
             {selectedProject && (
                 <Modal
                     isOpen={!!selectedProject}
-                    onClose={() => setSelectedProject(null)}
+                    onClose={() => setSelectedProjectId(null)}
                     title={selectedProject.title}
                 >
                     <ProjectDetail
                         project={selectedProject}
-                        onClose={() => setSelectedProject(null)}
+                        onClose={() => setSelectedProjectId(null)}
                         onUpdate={async (id, patch) => {
                             await updateProject(id, patch);
                         }}
                         onDelete={async (id) => {
                             await removeProject(id);
-                            setSelectedProject(null);
+                            setSelectedProjectId(null);
                         }}
                     />
                 </Modal>
