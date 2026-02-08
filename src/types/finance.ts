@@ -25,20 +25,20 @@ export interface Saving {
     balance: number;
     description?: string;
     createdAt: Date;
+    deadline?: Date;
 }
 
 // SAVING TRANSACTION
 export interface SavingTransaction {
     id: string;
-    savingID: string;   //--linked to saving id
+    savingID: string; // linked to saving id
     amount: number;
     type: 'deposit' | 'withdraw';
     date: Date;
     description?: string;
 }
 
-
-//FILTER TYPES
+// FILTER TYPES
 export type SavingFilter = 'active' | 'completed' | 'all';
 export type SavingTransactionFilter = 'deposit' | 'withdraw' | 'all';
 export type TransactionFilter = 'income' | 'outcome' | 'all';

@@ -1,75 +1,109 @@
 import { Transaction, Stats, TransactionFilter, DateFilter } from '../../types/finance.ts';
+import { getDb } from './db.ts';
+
+type TxRow = {
+    id: string;
+    type: 'income' | 'outcome';
+    date: string; // ISO
+    amount: number;
+    category: string;
+    description: string | null;
+};
+
+function rowToTx(r: TxRow): Transaction {
+    return {
+        id: r.id,
+        type: r.type,
+        date: new Date(r.date),
+        amount: r.amount,
+        category: r.category,
+        description: r.description ?? undefined,
+    };
+}
 
 class TransactionService {
-    private storageKey = 'persony_transactions';
-
     // Get all transactions
     async getAll(): Promise<Transaction[]> {
-        const data = localStorage.getItem(this.storageKey);
-        if (!data) return [];
-
-        const parsed = JSON.parse(data);
-        // Convert date strings back to Date objects
-        return parsed.map((t: any) => ({
-            ...t,
-            date: new Date(t.date)
-        }));
+        const db = await getDb();
+        const rows = await db.select<TxRow[]>(
+            "SELECT * FROM transactions ORDER BY date DESC"
+        );
+        return rows.map(rowToTx);
     }
 
     // Add new transaction
     async add(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {
-        const transactions = await this.getAll();
-        const newTransaction: Transaction = {
-            ...transaction,
-            id: Date.now().toString(),
-        };
-        transactions.push(newTransaction);
-        localStorage.setItem(this.storageKey, JSON.stringify(transactions));
-        return newTransaction;
+        const db = await getDb();
+        const id = crypto.randomUUID();
+        const dateIso = (transaction.date instanceof Date ? transaction.date : new Date(transaction.date)).toISOString();
+
+        await db.execute(
+            "INSERT INTO transactions (id, type, date, amount, category, description) VALUES ($1,$2,$3,$4,$5,$6)",
+            [id, transaction.type, dateIso, transaction.amount, transaction.category, transaction.description ?? null]
+        );
+
+        return { ...transaction, id, date: new Date(dateIso) };
     }
 
     // Delete transaction
     async delete(id: string): Promise<void> {
-        const transactions = await this.getAll();
-        const filtered = transactions.filter(t => t.id !== id);
-        localStorage.setItem(this.storageKey, JSON.stringify(filtered));
+        const db = await getDb();
+        await db.execute("DELETE FROM transactions WHERE id = $1", [id]);
     }
 
     // Update transaction
     async update(id: string, updates: Partial<Omit<Transaction, 'id'>>): Promise<Transaction | null> {
-        const transactions = await this.getAll();
-        const index = transactions.findIndex(t => t.id === id);
+        const db = await getDb();
+        const rows = await db.select<TxRow[]>("SELECT * FROM transactions WHERE id = $1", [id]);
+        if (!rows.length) return null;
 
-        if (index === -1) return null;
+        const current = rowToTx(rows[0]);
 
-        transactions[index] = { ...transactions[index], ...updates };
-        localStorage.setItem(this.storageKey, JSON.stringify(transactions));
-        return transactions[index];
+        const patched: Transaction = {
+            ...current,
+            ...updates,
+            date: ('date' in updates && updates.date) ? new Date(updates.date as any) : current.date,
+            description: ('description' in updates) ? (updates.description ?? undefined) : current.description,
+        };
+
+        const dateIso = patched.date.toISOString();
+
+        await db.execute(
+            "UPDATE transactions SET type=$1, date=$2, amount=$3, category=$4, description=$5 WHERE id=$6",
+            [patched.type, dateIso, patched.amount, patched.category, patched.description ?? null, id]
+        );
+
+        return patched;
     }
 
     // Get transactions by type filter
     async getByType(filter: TransactionFilter): Promise<Transaction[]> {
-        const transactions = await this.getAll();
-        if (filter === 'all') return transactions;
-        return transactions.filter(t => t.type === filter);
+        if (filter === 'all') return this.getAll();
+        const db = await getDb();
+        const rows = await db.select<TxRow[]>(
+            "SELECT * FROM transactions WHERE type = $1 ORDER BY date DESC",
+            [filter]
+        );
+        return rows.map(rowToTx);
     }
 
     // Get transactions by date range
     async getByDateRange(start: Date, end: Date): Promise<Transaction[]> {
-        const transactions = await this.getAll();
-        return transactions.filter(t => {
-            const txDate = new Date(t.date);
-            return txDate >= start && txDate <= end;
-        });
+        const db = await getDb();
+        const rows = await db.select<TxRow[]>(
+            "SELECT * FROM transactions WHERE date >= $1 AND date <= $2 ORDER BY date DESC",
+            [start.toISOString(), end.toISOString()]
+        );
+        return rows.map(rowToTx);
     }
 
     // Get transactions by date filter
     async getByDateFilter(filter: DateFilter): Promise<Transaction[]> {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
         let start: Date;
-        let end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
         switch (filter) {
             case 'today':
@@ -86,7 +120,6 @@ class TransactionService {
                 start = new Date(today.getFullYear(), 0, 1);
                 break;
             case 'all':
-                return this.getAll();
             default:
                 return this.getAll();
         }
@@ -96,45 +129,55 @@ class TransactionService {
 
     // Get transactions by category
     async getByCategory(category: string): Promise<Transaction[]> {
-        const transactions = await this.getAll();
-        return transactions.filter(t => t.category === category);
+        const db = await getDb();
+        const rows = await db.select<TxRow[]>(
+            "SELECT * FROM transactions WHERE category = $1 ORDER BY date DESC",
+            [category]
+        );
+        return rows.map(rowToTx);
     }
 
     // Calculate stats
     async getStats(): Promise<Stats> {
-        const transactions = await this.getAll();
+        const db = await getDb();
 
-        const totalIncome = transactions
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
+        const totals = await db.select<{ totalIncome: number; totalOutcome: number }[]>(
+            `SELECT
+                 COALESCE(SUM(CASE WHEN type='income' THEN amount END), 0) AS totalIncome,
+                 COALESCE(SUM(CASE WHEN type='outcome' THEN amount END), 0) AS totalOutcome
+             FROM transactions`
+        );
 
-        const totalOutcome = transactions
-            .filter(t => t.type === 'outcome')
-            .reduce((sum, t) => sum + t.amount, 0);
+        const { totalIncome, totalOutcome } = totals[0] ?? { totalIncome: 0, totalOutcome: 0 };
 
-        // Spending breakdown by category
+        const spendingRows = await db.select<{ category: string; total: number }[]>(
+            `SELECT category, COALESCE(SUM(amount), 0) AS total
+             FROM transactions
+             WHERE type='outcome'
+             GROUP BY category`
+        );
+
         const spending: { [category: string]: number } = {};
-        transactions
-            .filter(t => t.type === 'outcome')
-            .forEach(t => {
-                spending[t.category] = (spending[t.category] || 0) + t.amount;
-            });
+        spendingRows.forEach(r => (spending[r.category] = r.total));
+
+        const savedRows = await db.select<{ totalSaved: number }[]>(
+            "SELECT COALESCE(SUM(balance),0) AS totalSaved FROM savings"
+        );
+        const totalSaved = savedRows[0]?.totalSaved ?? 0;
 
         return {
             balance: totalIncome - totalOutcome,
             totalIncome,
             totalOutcome,
-            totalSaved: 0, // Will be calculated from SavingService
-            spending
+            totalSaved,
+            spending,
         };
     }
 
     // Get balance
     async getBalance(): Promise<number> {
-        const transactions = await this.getAll();
-        return transactions.reduce((balance, t) => {
-            return t.type === 'income' ? balance + t.amount : balance - t.amount;
-        }, 0);
+        const s = await this.getStats();
+        return s.balance;
     }
 }
 

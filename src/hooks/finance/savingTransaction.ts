@@ -1,70 +1,128 @@
-import { useState, useEffect } from 'react';
-import { SavingTransaction, SavingTransactionFilter } from '../../types/finance.ts';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { SavingTransaction, SavingTransactionFilter } from '../../types/finance.ts';
 import savingTransactionService from '../../services/finance.service/savingTransaction';
+
+type HookError = {
+    message: string;
+    cause?: unknown;
+};
+
+function formatErrorMessage(err: unknown, fallback: string) {
+    if (err instanceof Error && err.message) return err.message;
+    return fallback;
+}
 
 export function useSavingTransactions(savingId?: string) {
     const [transactions, setTransactions] = useState<SavingTransaction[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<HookError | null>(null);
 
+    // Avoid state update after unmount
+    const mountedRef = useRef(true);
     useEffect(() => {
-        loadTransactions();
-    }, [savingId]);
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
-    const loadTransactions = async () => {
+    const loadTransactions = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
+
             const data = savingId
                 ? await savingTransactionService.getBySavingId(savingId)
                 : await savingTransactionService.getAll();
-            setTransactions(data);
-        } catch (err) {
-            setError('Failed to load transactions');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    // Add transaction (deposit/withdraw)
-    const addTransaction = async (transaction: Omit<SavingTransaction, 'id'>) => {
-        try {
-            const newTx = await savingTransactionService.add(transaction);
-            setTransactions(prev => [...prev, newTx]);
-            return newTx;
+            // DB sudah ORDER BY date DESC, jadi langsung set
+            if (mountedRef.current) setTransactions(data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to add transaction');
             console.error(err);
+            if (mountedRef.current) {
+                setError({ message: formatErrorMessage(err, 'Failed to load transactions'), cause: err });
+            }
+        } finally {
+            if (mountedRef.current) setLoading(false);
+        }
+    }, [savingId]);
+
+    useEffect(() => {
+        void loadTransactions();
+    }, [loadTransactions]);
+
+    // Add transaction (deposit/withdraw) — optimistic + rollback
+    const addTransaction = useCallback(async (transaction: Omit<SavingTransaction, 'id'>) => {
+        setError(null);
+
+        const tempId = `temp_${crypto.randomUUID()}`;
+        const optimistic: SavingTransaction = {
+            ...transaction,
+            id: tempId,
+            date: transaction.date instanceof Date ? transaction.date : new Date(transaction.date),
+        };
+
+        setTransactions(prev => [optimistic, ...prev]);
+
+        try {
+            const created = await savingTransactionService.add(transaction);
+
+            setTransactions(prev => prev.map(t => (t.id === tempId ? created : t)));
+
+            return created;
+        } catch (err) {
+            // rollback optimistic insert
+            setTransactions(prev => prev.filter(t => t.id !== tempId));
+            console.error(err);
+            setError({ message: formatErrorMessage(err, 'Failed to add transaction'), cause: err });
             throw err;
         }
-    };
+    }, []);
 
-    // Delete transaction
-    const deleteTransaction = async (id: string) => {
+    // Delete transaction — optimistic + rollback
+    const deleteTransaction = useCallback(async (id: string) => {
+        setError(null);
+
+        // rollback snapshot
+        const before = transactions;
+
+        // optimistic remove
+        setTransactions(prev => prev.filter(t => t.id !== id));
+
         try {
             await savingTransactionService.delete(id);
-            setTransactions(prev => prev.filter(t => t.id !== id));
         } catch (err) {
-            setError('Failed to delete transaction');
+            // rollback
+            setTransactions(before);
             console.error(err);
+            setError({ message: formatErrorMessage(err, 'Failed to delete transaction'), cause: err });
             throw err;
         }
-    };
+    }, [transactions]);
 
-    // Get filtered transactions
-    const getFiltered = (filter: SavingTransactionFilter) => {
-        if (filter === 'all') return transactions;
-        return transactions.filter(t => t.type === filter);
-    };
+    const getFiltered = useCallback(
+        (filter: SavingTransactionFilter) => {
+            if (filter === 'all') return transactions;
+            return transactions.filter(t => t.type === filter);
+        },
+        [transactions]
+    );
+
+    const deposits = useMemo(() => transactions.filter(t => t.type === 'deposit'), [transactions]);
+    const withdrawals = useMemo(() => transactions.filter(t => t.type === 'withdraw'), [transactions]);
 
     return {
         transactions,
+        deposits,
+        withdrawals,
+
         loading,
         error,
+
         addTransaction,
         deleteTransaction,
+
         refresh: loadTransactions,
-        getFiltered
+        getFiltered,
     };
 }

@@ -1,51 +1,109 @@
 import { Saving, SavingFilter } from '../../types/finance.ts';
+import { getDb } from './db.ts';
+
+type SavingRow = {
+    id: string;
+    name: string;
+    target: number | null;
+    balance: number;
+    description: string | null;
+    created_at: string;
+    deadline: string | null;
+};
+
+function rowToSaving(r: SavingRow): Saving {
+    return {
+        id: r.id,
+        name: r.name,
+        target: r.target ?? undefined,
+        balance: r.balance,
+        description: r.description ?? undefined,
+        createdAt: new Date(r.created_at),
+        deadline: r.deadline ? new Date(r.deadline) : undefined,
+    };
+}
 
 class SavingService {
-    private storageKey = 'persony_savings';
-
     // Get all savings
     async getAll(): Promise<Saving[]> {
-        const data = localStorage.getItem(this.storageKey);
-        if (!data) return [];
-
-        const parsed = JSON.parse(data);
-        return parsed.map((s: any) => ({
-            ...s,
-            createdAt: new Date(s.createdAt),
-            deadline: s.deadline ? new Date(s.deadline) : undefined
-        }));
+        const db = await getDb();
+        const rows = await db.select<SavingRow[]>(
+            "SELECT * FROM savings ORDER BY created_at DESC"
+        );
+        return rows.map(rowToSaving);
     }
 
     // Add new saving goal
     async add(saving: Omit<Saving, 'id' | 'balance' | 'createdAt'>): Promise<Saving> {
-        const savings = await this.getAll();
-        const newSaving: Saving = {
+        const db = await getDb();
+
+        const id = crypto.randomUUID();
+        const createdAtIso = new Date().toISOString();
+        const deadlineIso = saving.deadline ? new Date(saving.deadline as any).toISOString() : null;
+
+        await db.execute(
+            `INSERT INTO savings (id, name, target, balance, description, created_at, deadline)
+             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            [
+                id,
+                saving.name,
+                saving.target ?? null,
+                0,
+                saving.description ?? null,
+                createdAtIso,
+                deadlineIso,
+            ]
+        );
+
+        return {
             ...saving,
-            id: Date.now().toString(),
-            balance: 0, // Start with 0 balance
-            createdAt: new Date(),
+            id,
+            balance: 0,
+            createdAt: new Date(createdAtIso),
+            deadline: deadlineIso ? new Date(deadlineIso) : undefined,
         };
-        savings.push(newSaving);
-        localStorage.setItem(this.storageKey, JSON.stringify(savings));
-        return newSaving;
     }
 
     // Get saving by ID
     async getById(id: string): Promise<Saving | null> {
-        const savings = await this.getAll();
-        return savings.find(s => s.id === id) || null;
+        const db = await getDb();
+        const rows = await db.select<SavingRow[]>("SELECT * FROM savings WHERE id = $1", [id]);
+        return rows.length ? rowToSaving(rows[0]) : null;
     }
 
     // Update saving
     async update(id: string, updates: Partial<Omit<Saving, 'id' | 'createdAt'>>): Promise<Saving | null> {
-        const savings = await this.getAll();
-        const index = savings.findIndex(s => s.id === id);
+        const db = await getDb();
+        const rows = await db.select<SavingRow[]>("SELECT * FROM savings WHERE id = $1", [id]);
+        if (!rows.length) return null;
 
-        if (index === -1) return null;
+        const current = rowToSaving(rows[0]);
 
-        savings[index] = { ...savings[index], ...updates };
-        localStorage.setItem(this.storageKey, JSON.stringify(savings));
-        return savings[index];
+        const patched: Saving = {
+            ...current,
+            ...updates,
+            target: ('target' in updates) ? (updates.target ?? undefined) : current.target,
+            description: ('description' in updates) ? (updates.description ?? undefined) : current.description,
+            deadline: ('deadline' in updates)
+                ? (updates.deadline ? new Date(updates.deadline as any) : undefined)
+                : current.deadline,
+        };
+
+        await db.execute(
+            `UPDATE savings
+             SET name=$1, target=$2, balance=$3, description=$4, deadline=$5
+             WHERE id=$6`,
+            [
+                patched.name,
+                patched.target ?? null,
+                patched.balance,
+                patched.description ?? null,
+                patched.deadline ? patched.deadline.toISOString() : null,
+                id,
+            ]
+        );
+
+        return patched;
     }
 
     // Update saving balance (internal method, called by SavingTransactionService)
@@ -66,9 +124,9 @@ class SavingService {
 
     // Delete saving
     async delete(id: string): Promise<void> {
-        const savings = await this.getAll();
-        const filtered = savings.filter(s => s.id !== id);
-        localStorage.setItem(this.storageKey, JSON.stringify(filtered));
+        const db = await getDb();
+        await db.execute("DELETE FROM savings WHERE id = $1", [id]);
+        // saving_transactions akan ikut terhapus karena ON DELETE CASCADE
     }
 
     // Get savings by filter
@@ -78,21 +136,11 @@ class SavingService {
         if (filter === 'all') return savings;
 
         if (filter === 'active') {
-            return savings.filter(s => {
-                // No target = always active
-                if (!s.target) return true;
-                // Has target = check if not completed
-                return s.balance < s.target;
-            });
+            return savings.filter(s => !s.target || s.balance < s.target);
         }
 
         if (filter === 'completed') {
-            return savings.filter(s => {
-                // No target = never completed
-                if (!s.target) return false;
-                // Has target = check if completed
-                return s.balance >= s.target;
-            });
+            return savings.filter(s => !!s.target && s.balance >= s.target);
         }
 
         return savings;
@@ -100,8 +148,11 @@ class SavingService {
 
     // Get total saved amount across all savings
     async getTotalSaved(): Promise<number> {
-        const savings = await this.getAll();
-        return savings.reduce((sum, s) => sum + s.balance, 0);
+        const db = await getDb();
+        const rows = await db.select<{ total: number }[]>(
+            "SELECT COALESCE(SUM(balance),0) AS total FROM savings"
+        );
+        return rows[0]?.total ?? 0;
     }
 
     // Get saving progress (for savings with target)

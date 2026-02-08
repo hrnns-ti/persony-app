@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar, { AppTab } from './components/dashboard/Sidebar';
 
 import FinancePage from './pages/Finance';

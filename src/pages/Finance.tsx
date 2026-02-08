@@ -1,17 +1,20 @@
-import { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import StatsCard from "../components/finance/StatsCard.tsx";
 import ActionCard from '../components/finance/ActionCard'
 import Card from '../components/ui/Card'
 import IncomeIcon from '../assets/icons/income.tsx'
 import OutcomeIcon from '../assets/icons/outcome.tsx'
-import { useTransactions } from '../hooks/finance/transaction'
-import { useSavings } from '../hooks/finance/saving'
 import Modal from '../components/ui/Modal'
 import SavingForm from '../components/finance/SavingForm'
-import { Saving } from "../assets/icons";
 import TransactionForm from "../components/finance/TransactionForm.tsx";
 import StatisticsChart from '../components/finance/StatisticsChart'
-import type { Saving as SavingType } from '../types/finance.ts'
+import { Saving } from "../assets/icons";
+
+import { useTransactions } from '../hooks/finance/transaction'
+import { useSavings } from '../hooks/finance/saving'
+import { useSavingTransactions } from '../hooks/finance/savingTransaction'
+
+import type { Saving as SavingType, Transaction, SavingTransaction } from '../types/finance.ts'
 
 export default function FinancePage() {
     const [isSavingModalOpen, setIsSavingModalOpen] = useState(false)
@@ -19,98 +22,97 @@ export default function FinancePage() {
     const [isOutcomeModalOpen, setIsOutcomeModalOpen] = useState(false)
 
     const { transactions, addTransaction, loading } = useTransactions()
-    const { savings, addSaving, updateSaving, deleteSaving} = useSavings()
+    const { savings, addSaving, deleteSaving, refresh: refreshSavings } = useSavings()
+
+    const {
+        addTransaction: addSavingTx,
+        refresh: refreshSavingTx
+    } = useSavingTransactions()
 
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
     const [savingToDelete, setSavingToDelete] = useState<SavingType | null>(null)
 
-    const stats = {
-        balance: 0,
-        totalIncome: 0,
-        totalOutcome: 0,
-        spending: {} as Record<string, number>
-    }
+    const stats = useMemo(() => {
+        const s = {
+            balance: 0,
+            totalIncome: 0,
+            totalOutcome: 0,
+            spending: {} as Record<string, number>
+        }
 
-    if (transactions && transactions.length > 0) {
-        stats.totalIncome = transactions
+        if (!transactions || transactions.length === 0) return s
+
+        s.totalIncome = transactions
             .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0)
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-        stats.totalOutcome = transactions
+        s.totalOutcome = transactions
             .filter(t => t.type === 'outcome')
             .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-        stats.balance = stats.totalIncome - stats.totalOutcome
+        s.balance = s.totalIncome - s.totalOutcome
 
-        transactions.forEach(t => {
+        for (const t of transactions) {
             if (t.type === 'outcome') {
-                stats.spending[t.category] = (stats.spending[t.category] || 0) + Math.abs(t.amount)
+                s.spending[t.category] = (s.spending[t.category] || 0) + Math.abs(t.amount)
             }
-        })
+        }
+
+        return s
+    }, [transactions])
+
+    const outcomeItems = useMemo(() => {
+        return stats.spending
+            ? Object.entries(stats.spending)
+                .sort(([, a], [, b]) => b - a)
+                .map(([label, value]) => ({
+                    label,
+                    value,
+                    percentage: (value / (stats.totalOutcome || 1)) * 100
+                }))
+                .slice(0, 10)
+            : []
+    }, [stats.spending, stats.totalOutcome])
+
+    const handleNewIncome = () => setIsIncomeModalOpen(true)
+    const handleNewOutcome = () => setIsOutcomeModalOpen(true)
+    const handleNewSaving = () => setIsSavingModalOpen(true)
+
+    const handleSubmitIncome = async (tx: Omit<Transaction, 'id'>) => {
+        try {
+            await addTransaction(tx)
+            setIsIncomeModalOpen(false)
+        } catch (e) {
+            console.error(e)
+            alert('Gagal menambah income')
+        }
     }
 
-    const handleNewIncome = () => {
-        setIsIncomeModalOpen(true)
+    const handleSubmitOutcome = async (tx: Omit<Transaction, 'id'>) => {
+        try {
+            await addTransaction(tx)
+            setIsOutcomeModalOpen(false)
+        } catch (e) {
+            console.error(e)
+            alert('Gagal menambah outcome')
+        }
     }
 
-    const handleAddIncome = (amount: number, category: string, description?: string) => {
-        addTransaction({
-            type: 'income',
-            amount,
-            category,
-            date: new Date(),
-            description
-        })
-        setIsIncomeModalOpen(false)
+    const handleSubmitSaving = async (saving: Omit<SavingType, 'id' | 'balance' | 'createdAt'>) => {
+        try {
+            await addSaving(saving)
+            setIsSavingModalOpen(false)
+        } catch (e) {
+            console.error(e)
+            alert('Gagal membuat saving')
+        }
     }
-
-    const handleNewOutcome = () => {
-        setIsOutcomeModalOpen(true)
-    }
-
-    const handleAddOutcome = (amount: number, category: string, description?: string) => {
-        addTransaction({
-            type: 'outcome',
-            amount: -amount,
-            category,
-            date: new Date(),
-            description
-        })
-        setIsOutcomeModalOpen(false)
-    }
-
-    const handleNewSaving = () => {
-        setIsSavingModalOpen(true)
-    }
-
-    const handleSaveSaving = (name: string, target: number, description?: string) => {
-        addSaving({
-            name,
-            target,
-            description
-        })
-        setIsSavingModalOpen(false)
-    }
-
-    const outcomeItems = stats.spending
-        ? Object.entries(stats.spending)
-            .sort(([, a], [, b]) => b - a)
-            .map(([label, value]) => ({
-                label,
-                value,
-                percentage: (value / (stats.totalOutcome || 1)) * 100
-            }))
-            .slice(0, 10)
-        : []
 
     const [actionType, setActionType] = useState<'deposit' | 'withdraw'>('deposit')
     const [selectedSavingId, setSelectedSavingId] = useState('')
     const [amount, setAmount] = useState(0)
 
-    // Helper functions
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID').format(value)
-    }
+    const formatCurrency = (value: number) => new Intl.NumberFormat('id-ID').format(value)
 
     const handleAmountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\D/g, '')
@@ -121,24 +123,24 @@ export default function FinancePage() {
         if (!selectedSavingId || amount <= 0) return
 
         try {
-            const saving = savings.find(s => s.id === selectedSavingId)
-            if (!saving) return
-
-            const newBalance = actionType === 'deposit'
-                ? saving.balance + amount
-                : saving.balance - amount
-
-            if (newBalance < 0) {
-                alert('Insufficient balance!')
-                return
+            const tx: Omit<SavingTransaction, 'id'> = {
+                savingID: selectedSavingId,
+                type: actionType,
+                amount: Math.abs(amount),
+                date: new Date(),
+                description: actionType === 'deposit' ? 'Deposit' : 'Withdraw'
             }
 
-            await updateSaving(selectedSavingId, { balance: newBalance })
+            await addSavingTx(tx)
+
+            await refreshSavings()
+            await refreshSavingTx()
 
             setAmount(0)
             setSelectedSavingId('')
         } catch (error) {
             console.error('Deposit/Withdraw failed:', error)
+            alert(error instanceof Error ? error.message : 'Deposit/Withdraw gagal')
         }
     }
 
@@ -150,16 +152,16 @@ export default function FinancePage() {
         return value.toLocaleString()
     }
 
-    const getMonthlyChange = (transactions: any[], type: 'income' | 'outcome'): string => {
+    const getMonthlyChange = (txs: any[], type: 'income' | 'outcome'): string => {
         const now = new Date()
         const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
-        const thisMonthData = transactions
+        const thisMonthData = txs
             .filter(t => t.type === type && new Date(t.date) >= thisMonth)
             .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-        const lastMonthData = transactions
+        const lastMonthData = txs
             .filter(t => t.type === type && new Date(t.date) >= lastMonth && new Date(t.date) < thisMonth)
             .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
@@ -170,8 +172,8 @@ export default function FinancePage() {
         return `${sign}${change.toFixed(1)}% since last month`
     }
 
-    const getBalanceChange = (transactions: any[]): string => {
-        return getMonthlyChange(transactions, 'income')
+    const getBalanceChange = (txs: any[]): string => {
+        return getMonthlyChange(txs, 'income')
     }
 
     const outcomeColors = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500']
@@ -189,7 +191,6 @@ export default function FinancePage() {
 
                             {/* ROW 1: Stats */}
                             <div className="space-y-2 flex-shrink-0">
-                                {/* Stats Cards */}
                                 <div className="grid grid-cols-3 gap-4">
                                     <StatsCard
                                         label="Balance"
@@ -213,16 +214,12 @@ export default function FinancePage() {
                                 </div>
                             </div>
 
-                            {/* ROW 2: Charts Section + Action Cards */}
+                            {/* ROW 2 */}
                             <div className="grid grid-cols-2 w-[133.7%] h-[40%] gap-4 mb-4 flex-shrink-0">
-                                {/* Statistic */}
                                 <StatisticsChart transactions={transactions || []} />
 
-                                {/* Outcome Overview - CONNECTED TO HOOKS */}
                                 <div className="grid grid-cols-2 gap-4 ">
                                     <div className="gap-4">
-
-                                        {/* Outcome Overview */}
                                         <Card className="bg-main border h-full border-line">
                                             <h3 className="text-sm font-semibold text-slate-400 mb-5 col-span-full">Outcome Overview</h3>
                                             <div className="space-y-2 text-sm">
@@ -250,12 +247,11 @@ export default function FinancePage() {
                                 </div>
                             </div>
 
-                            {/* ROW 3: Savings Section */}
+                            {/* ROW 3: Savings */}
                             <div className="bg-main flex flex-col overflow-hidden">
                                 <Card className="bg-main border border-line flex flex-col overflow-hidden">
                                     <h3 className="text-sm font-semibold text-slate-400 mb-4 flex-shrink-0">Savings</h3>
 
-                                    {/* Scrollable savings container */}
                                     <div className="flex-1 overflow-y-auto pr-2 savings-scroll">
                                         {savings && savings.length > 0 ? (
                                             <div className="space-y-3">
@@ -264,16 +260,12 @@ export default function FinancePage() {
                                                         key={saving.id}
                                                         className="bg-secondary rounded-lg p-4 border border-line flex-shrink-0 group relative"
                                                     >
-                                                        {/* DELETE BUTTON */}
                                                         <button
                                                             onClick={() => {
                                                                 setSavingToDelete(saving)
                                                                 setDeleteConfirmId(saving.id)
                                                             }}
-                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100
-                                                                       w-6 h-6 rounded-md bg-main
-                                                                       border border-slate-400 hover:border-red flex items-center justify-center
-                                                                       text-slate-400 hover:text-red text-xs font-bold transition-all"
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md bg-main border border-slate-400 hover:border-red flex items-center justify-center text-slate-400 hover:text-red text-xs font-bold transition-all"
                                                             title="Hapus saving"
                                                         >
                                                             ×
@@ -297,6 +289,7 @@ export default function FinancePage() {
                                                                 />
                                                             </div>
                                                         )}
+
                                                         {saving.description && (
                                                             <p className="text-xs text-slate-500 mt-2 line-clamp-2">{saving.description}</p>
                                                         )}
@@ -317,7 +310,6 @@ export default function FinancePage() {
                         {/* RIGHT COLUMN */}
                         <div className="flex flex-col space-y-4 overflow-hidden">
                             <div className="flex-1 mt-4 space-y-4 overflow-hidden">
-                                {/* Savings */}
                                 <div className="flex flex-col space-y-2">
                                     <ActionCard
                                         title="New Income"
@@ -339,7 +331,6 @@ export default function FinancePage() {
                                     />
                                 </div>
 
-                                {/* Top: GIF/Empty */}
                                 <img
                                     src="/assets/night.jpg"
                                     alt="Eyes GIF"
@@ -356,6 +347,7 @@ export default function FinancePage() {
                                 {/* Toggle */}
                                 <div className="grid grid-cols-2 mx-2 gap-3 mb-4">
                                     <button
+                                        type="button"
                                         onClick={() => setActionType('deposit')}
                                         className={`p-2 rounded-md transition-all font-mono ${
                                             actionType === 'deposit'
@@ -365,7 +357,9 @@ export default function FinancePage() {
                                     >
                                         <div className="text-sm">Deposit</div>
                                     </button>
+
                                     <button
+                                        type="button"
                                         onClick={() => setActionType('withdraw')}
                                         className={`p-2 rounded-md transition-all font-mono ${
                                             actionType === 'withdraw'
@@ -401,21 +395,18 @@ export default function FinancePage() {
                                     <option value="">Pilih Savings</option>
                                     {savings.map((saving) => (
                                         <option key={saving.id} value={saving.id}>
-                                            {saving.name}
-                                            <span className="ml-4 opacity-75">
-                                                ({formatCurrency(saving.balance)}
-                                                {saving.target && ` / ${formatCurrency(saving.target)}`})
-                                            </span>
+                                            {saving.name} ({formatCurrency(saving.balance)}
+                                            {saving.target && ` / ${formatCurrency(saving.target)}`})
                                         </option>
                                     ))}
                                 </select>
 
                                 {/* Button */}
                                 <button
+                                    type="button"
                                     onClick={handleDepositWithdraw}
                                     disabled={!selectedSavingId || amount <= 0}
-                                    className="w-[93.3%] bg-secondary mx-2 py-4 text-sm bg-secondary hover:from-secondary border border-line disabled:cursor-not-allowed text-white rounded-md  transition-all duration-300 font-mono tracking-wide
-                                    hover:border-emerald-500/50 hover:text-emerald-400"
+                                    className="w-[93.3%] mx-2 py-4 text-sm bg-secondary hover:from-secondary border border-line disabled:cursor-not-allowed text-white rounded-md transition-all duration-300 font-mono tracking-wide hover:border-emerald-500/50 hover:text-emerald-400"
                                 >
                                     {actionType === 'deposit' ? 'DEPOSIT' : 'WITHDRAW'}
                                 </button>
@@ -425,13 +416,14 @@ export default function FinancePage() {
                 </div>
             </main>
 
+            {/* Modals */}
             <Modal
                 isOpen={isSavingModalOpen}
                 onClose={() => setIsSavingModalOpen(false)}
                 title="New Saving Goal"
             >
                 <SavingForm
-                    onSubmit={handleSaveSaving}
+                    onSubmit={handleSubmitSaving}
                     onCancel={() => setIsSavingModalOpen(false)}
                 />
             </Modal>
@@ -443,7 +435,7 @@ export default function FinancePage() {
             >
                 <TransactionForm
                     type="income"
-                    onSubmit={handleAddIncome}
+                    onSubmit={handleSubmitIncome}
                     onCancel={() => setIsIncomeModalOpen(false)}
                 />
             </Modal>
@@ -455,7 +447,7 @@ export default function FinancePage() {
             >
                 <TransactionForm
                     type="outcome"
-                    onSubmit={handleAddOutcome}
+                    onSubmit={handleSubmitOutcome}
                     onCancel={() => setIsOutcomeModalOpen(false)}
                 />
             </Modal>
@@ -491,8 +483,7 @@ export default function FinancePage() {
                                         alert('Gagal hapus saving!')
                                     }
                                 }}
-                                className="flex-1 bg-main  hover:text-red font-mono
-                                           py-3 mx-6 rounded-md border border-red transition-all font-semibold"
+                                className="flex-1 bg-main hover:text-red font-mono py-3 mx-6 rounded-md border border-red transition-all font-semibold"
                             >
                                 Delete Permanently
                             </button>
@@ -501,8 +492,7 @@ export default function FinancePage() {
                                     setDeleteConfirmId(null)
                                     setSavingToDelete(null)
                                 }}
-                                className="flex-1 bg-secondary hover:bg-slate-800 text-slate-300
-                                           font-mono py-3 mx-6 rounded-md border border-line transition-all"
+                                className="flex-1 bg-secondary hover:bg-slate-800 text-slate-300 font-mono py-3 mx-6 rounded-md border border-line transition-all"
                             >
                                 Cancel
                             </button>

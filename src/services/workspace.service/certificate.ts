@@ -1,4 +1,3 @@
-// src/services/workspace.service/certificate.service.ts
 import type { Certificate } from '../../types/workspace';
 
 const STORAGE_KEY = 'persony_workspace_certificates';

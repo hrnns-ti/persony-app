@@ -8,7 +8,6 @@ export interface Course {
     semester: string;
     startDate?: Date;
     endDate?: Date;
-    instructor?: string;
     credits?: number;
     color?: string;
     grade?: string;

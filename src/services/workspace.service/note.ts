@@ -1,4 +1,3 @@
-// src/services/workspace.service/note.service.ts
 import type { Note } from '../../types/workspace';
 
 const STORAGE_KEY = 'persony_workspace_notes';
