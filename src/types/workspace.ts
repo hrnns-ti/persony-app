@@ -67,6 +67,8 @@ export interface Certificate {
     issueDate: Date;
     expiryDate?: Date;
     credentialUrl?: string;
+    filePath?: string;
+    previewDataUrl?: string;
 }
 
 // HELPER

@@ -6,8 +6,10 @@ let dbPromise: Promise<Database> | null = null;
 let initPromise: Promise<void> | null = null;
 
 async function initWorkspaceSchema(db: Database): Promise<void> {
+    // Foreign keys in SQLite need this
     await db.execute("PRAGMA foreign_keys = ON");
 
+    // COURSES
     await db.execute(`
     CREATE TABLE IF NOT EXISTS workspace_courses (
       id TEXT PRIMARY KEY,
@@ -18,6 +20,7 @@ async function initWorkspaceSchema(db: Database): Promise<void> {
       semester TEXT NOT NULL,
       start_date TEXT,
       end_date TEXT,
+      instructor TEXT,
       credits INTEGER,
       color TEXT,
       grade TEXT
@@ -26,6 +29,7 @@ async function initWorkspaceSchema(db: Database): Promise<void> {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_courses_status ON workspace_courses(status)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_courses_semester ON workspace_courses(semester)`);
 
+    // ASSIGNMENTS (cascade when course deleted)
     await db.execute(`
     CREATE TABLE IF NOT EXISTS workspace_assignments (
       id TEXT PRIMARY KEY,
@@ -48,6 +52,7 @@ async function initWorkspaceSchema(db: Database): Promise<void> {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_assign_deadline ON workspace_assignments(deadline)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_assign_status ON workspace_assignments(assignment_status)`);
 
+    // PROJECTS (set null when course deleted)
     await db.execute(`
     CREATE TABLE IF NOT EXISTS workspace_projects (
       id TEXT PRIMARY KEY,
@@ -66,6 +71,7 @@ async function initWorkspaceSchema(db: Database): Promise<void> {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_proj_course_id ON workspace_projects(course_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_proj_deadline ON workspace_projects(deadline)`);
 
+    // NOTES (set null when course deleted)
     await db.execute(`
     CREATE TABLE IF NOT EXISTS workspace_notes (
       id TEXT PRIMARY KEY,
@@ -85,6 +91,7 @@ async function initWorkspaceSchema(db: Database): Promise<void> {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_notes_updated_at ON workspace_notes(updated_at)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_ws_notes_pinned ON workspace_notes(is_pinned)`);
 
+    // CERTIFICATES
     await db.execute(`
     CREATE TABLE IF NOT EXISTS workspace_certificates (
       id TEXT PRIMARY KEY,
@@ -106,5 +113,8 @@ export async function getWorkspaceDb(): Promise<Database> {
     if (!initPromise) initPromise = initWorkspaceSchema(db);
     await initPromise;
 
-    return db;
+    try { await db.execute(`ALTER TABLE workspace_certificates ADD COLUMN file_path TEXT`); } catch {}
+    try { await db.execute(`ALTER TABLE workspace_certificates ADD COLUMN preview_data_url TEXT`); } catch {}
+
+  return db;
 }

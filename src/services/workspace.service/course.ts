@@ -1,82 +1,141 @@
 import type { Course } from "../../types/workspace";
+import { getWorkspaceDb } from "./database";
 
-const STORAGE_KEY = "persony_workspace_courses";
+type CourseRow = {
+    id: string;
+    title: string;
+    code: string;
+    description: string | null;
+    status: "active" | "completed" | "dropped";
+    semester: string;
+    start_date: string | null;
+    end_date: string | null;
+    instructor: string | null;
+    credits: number | null;
+    color: string | null;
+    grade: string | null;
+};
+
+function has<T extends object>(obj: T, key: keyof any): boolean {
+    return Object.prototype.hasOwnProperty.call(obj, key);
+}
 
 function toDate(v: unknown): Date | undefined {
-    if (!v) return undefined;
-    if (v instanceof Date) return Number.isNaN(v.getTime()) ? undefined : v;
+    if (v === null || v === undefined) return undefined;
+    const d = v instanceof Date ? v : new Date(v as any);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+}
 
-    if (typeof v === "string" || typeof v === "number") {
-        const d = new Date(v);
-        return Number.isNaN(d.getTime()) ? undefined : d;
-    }
+function toIsoOrNull(v: unknown): string | null {
+    const d = toDate(v);
+    return d ? d.toISOString() : null;
+}
 
-    return undefined;
+function rowToCourse(r: CourseRow): Course {
+    return {
+        id: r.id,
+        title: r.title,
+        code: r.code,
+        description: r.description ?? undefined,
+        status: r.status,
+        semester: r.semester,
+        startDate: r.start_date ? new Date(r.start_date) : undefined,
+        endDate: r.end_date ? new Date(r.end_date) : undefined,
+        credits: r.credits ?? undefined,
+        color: r.color ?? undefined,
+        grade: r.grade ?? undefined,
+    };
 }
 
 class CourseService {
-    private readRaw(): Course[] {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-
-        try {
-            const parsed = JSON.parse(raw) as any[];
-
-            return (Array.isArray(parsed) ? parsed : []).map((c) => ({
-                ...c,
-                startDate: toDate(c.startDate),
-                endDate: toDate(c.endDate),
-            })) as Course[];
-        } catch {
-            return [];
-        }
-    }
-
-    private writeRaw(items: Course[]): void {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    }
-
     async getAll(): Promise<Course[]> {
-        return this.readRaw();
+        const db = await getWorkspaceDb();
+        const rows = await db.select<CourseRow[]>(
+            `SELECT * FROM workspace_courses
+       ORDER BY (start_date IS NULL) ASC, start_date DESC, title ASC`
+        );
+        return rows.map(rowToCourse);
     }
 
     async add(data: Omit<Course, "id">): Promise<Course> {
-        const all = this.readRaw();
-        const course: Course = {
-            ...data,
-            id: crypto.randomUUID(),
-        };
-        all.push(course);
-        this.writeRaw(all);
-        return course;
+        const db = await getWorkspaceDb();
+        const id = crypto.randomUUID();
+
+        await db.execute(
+            `INSERT INTO workspace_courses
+       (id, title, code, description, status, semester, start_date, end_date, instructor, credits, color, grade)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+                id,
+                data.title,
+                data.code,
+                data.description ?? null,
+                data.status,
+                data.semester,
+                toIsoOrNull(data.startDate),
+                toIsoOrNull(data.endDate),
+                data.credits ?? null,
+                data.color ?? null,
+                data.grade ?? null,
+            ]
+        );
+
+        return { ...data, id };
     }
 
     async update(id: string, patch: Partial<Course>): Promise<Course | null> {
-        const all = this.readRaw();
-        const index = all.findIndex((c) => c.id === id);
-        if (index === -1) return null;
+        const db = await getWorkspaceDb();
+        const rows = await db.select<CourseRow[]>(
+            `SELECT * FROM workspace_courses WHERE id = ?`,
+            [id]
+        );
+        if (!rows.length) return null;
+
+        const current = rowToCourse(rows[0]);
 
         const updated: Course = {
-            ...all[index],
+            ...current,
             ...patch,
-            startDate: patch.startDate !== undefined ? toDate(patch.startDate) : all[index].startDate,
-            endDate: patch.endDate !== undefined ? toDate(patch.endDate) : all[index].endDate,
+            startDate: has(patch, "startDate") ? toDate((patch as any).startDate) : current.startDate,
+            endDate: has(patch, "endDate") ? toDate((patch as any).endDate) : current.endDate,
+            description: has(patch, "description") ? (patch.description ?? undefined) : current.description,
+            credits: has(patch, "credits") ? (patch.credits ?? undefined) : current.credits,
+            color: has(patch, "color") ? (patch.color ?? undefined) : current.color,
+            grade: has(patch, "grade") ? (patch.grade ?? undefined) : current.grade,
         };
 
-        all[index] = updated;
-        this.writeRaw(all);
+        await db.execute(
+            `UPDATE workspace_courses
+       SET title=?, code=?, description=?, status=?, semester=?,
+           start_date=?, end_date=?, instructor=?, credits=?, color=?, grade=?
+       WHERE id=?`,
+            [
+                updated.title,
+                updated.code,
+                updated.description ?? null,
+                updated.status,
+                updated.semester,
+                toIsoOrNull(updated.startDate),
+                toIsoOrNull(updated.endDate),
+                updated.credits ?? null,
+                updated.color ?? null,
+                updated.grade ?? null,
+                id,
+            ]
+        );
+
         return updated;
     }
 
     async remove(id: string): Promise<void> {
-        const all = this.readRaw();
-        this.writeRaw(all.filter((c) => c.id !== id));
+        const db = await getWorkspaceDb();
+        await db.execute(`DELETE FROM workspace_courses WHERE id = ?`, [id]);
     }
 
     async clear(): Promise<void> {
-        localStorage.removeItem(STORAGE_KEY);
+        const db = await getWorkspaceDb();
+        await db.execute(`DELETE FROM workspace_courses`);
     }
 }
 
-const courseService = new CourseService();
-export default courseService;
+export default new CourseService();

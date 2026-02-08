@@ -1,98 +1,110 @@
-import { useEffect, useState } from 'react';
-import type { Certificate } from '../../types/workspace';
-import certificateService from '../../services/workspace.service/certificate.ts';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Certificate } from "../../types/workspace";
+import certificateService from "../../services/workspace.service/certificate";
+
+function sortCertificates(items: Certificate[]) {
+    return [...items].sort((a, b) => {
+        const ad = new Date(a.issueDate).getTime();
+        const bd = new Date(b.issueDate).getTime();
+        return bd - ad;
+    });
+}
 
 export function useCertificates() {
     const [certificates, setCertificates] = useState<Certificate[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // initial load
+    const mountedRef = useRef(true);
     useEffect(() => {
-        let mounted = true;
-
-        (async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const data = await certificateService.getAll();
-                if (!mounted) return;
-                setCertificates(data);
-            } catch (err) {
-                console.error('Failed to load certificates', err);
-                if (!mounted) return;
-                setError('Failed to load certificates');
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        })();
-
+        mountedRef.current = true;
         return () => {
-            mounted = false;
+            mountedRef.current = false;
         };
     }, []);
 
-    async function addCertificate(
-        input: Omit<Certificate, 'id'>
-    ): Promise<Certificate> {
+    const load = useCallback(async () => {
         try {
-            const created = await certificateService.add(input);
-            setCertificates((prev) => [...prev, created]);
-            return created;
-        } catch (err) {
-            console.error('Failed to add certificate', err);
-            setError('Failed to add certificate');
-            throw err;
+            setLoading(true);
+            setError(null);
+            const data = await certificateService.getAll();
+            if (!mountedRef.current) return;
+            setCertificates(sortCertificates(data));
+        } catch (e) {
+            console.error(e);
+            if (!mountedRef.current) return;
+            setError(e instanceof Error ? e.message : "Failed to load certificates");
+        } finally {
+            if (mountedRef.current) setLoading(false);
         }
-    }
+    }, []);
 
-    async function updateCertificate(
-        id: string,
-        patch: Partial<Certificate>
-    ): Promise<Certificate | null> {
+    useEffect(() => {
+        void load();
+    }, [load]);
+
+    const addCertificate = useCallback(async (input: Omit<Certificate, "id">) => {
         try {
+            setError(null);
+            const created = await certificateService.add(input);
+            setCertificates((prev) => sortCertificates([created, ...prev]));
+            return created;
+        } catch (e) {
+            console.error(e);
+            setError(e instanceof Error ? e.message : "Failed to add certificate");
+            throw e;
+        }
+    }, []);
+
+    const updateCertificate = useCallback(async (id: string, patch: Partial<Certificate>) => {
+        try {
+            setError(null);
             const updated = await certificateService.update(id, patch);
             if (!updated) return null;
-            setCertificates((prev) =>
-                prev.map((c) => (c.id === id ? updated : c)),
-            );
+            setCertificates((prev) => sortCertificates(prev.map((c) => (c.id === id ? updated : c))));
             return updated;
-        } catch (err) {
-            console.error('Failed to update certificate', err);
-            setError('Failed to update certificate');
-            throw err;
+        } catch (e) {
+            console.error(e);
+            setError(e instanceof Error ? e.message : "Failed to update certificate");
+            throw e;
         }
-    }
+    }, []);
 
-    async function removeCertificate(id: string): Promise<void> {
+    const removeCertificate = useCallback(async (id: string) => {
         try {
+            setError(null);
             await certificateService.remove(id);
             setCertificates((prev) => prev.filter((c) => c.id !== id));
-        } catch (err) {
-            console.error('Failed to delete certificate', err);
-            setError('Failed to delete certificate');
-            throw err;
+        } catch (e) {
+            console.error(e);
+            setError(e instanceof Error ? e.message : "Failed to delete certificate");
+            throw e;
         }
-    }
+    }, []);
 
-    async function clearCertificates(): Promise<void> {
+    // optional: kalau service kamu punya attachPdf(id, sourcePath)
+    const attachPdfToCertificate = useCallback(async (id: string, sourcePdfPath: string) => {
         try {
-            await certificateService.clear();
-            setCertificates([]);
-        } catch (err) {
-            console.error('Failed to clear certificates', err);
-            setError('Failed to clear certificates');
-            throw err;
+            setError(null);
+            const updated = await certificateService.attachPdf?.(id, sourcePdfPath);
+            if (!updated) return null;
+            setCertificates((prev) => sortCertificates(prev.map((c) => (c.id === id ? updated : c))));
+            return updated;
+        } catch (e) {
+            console.error(e);
+            setError(e instanceof Error ? e.message : "Failed to attach PDF");
+            throw e;
         }
-    }
+    }, []);
 
     return {
         certificates,
         loading,
         error,
+        refresh: load,
         addCertificate,
         updateCertificate,
         removeCertificate,
-        clearCertificates,
+        attachPdfToCertificate,
     };
 }

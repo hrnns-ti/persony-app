@@ -8,7 +8,23 @@
   "permissions": [
     "core:default",
     "core:webview:allow-internal-toggle-devtools",
+    "dialog:default",
+    "fs:default",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-appdata-read-recursive",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "$APPDATA/persony/**"
+        },
+        "$HOME/**/*",
+        "$DOCUMENT/**/*",
+        "$DOWNLOAD/**/*",
+        "$DESKTOP/**/*"
+      ]
+    },
     "sql:default",
     "sql:allow-execute"
   ]
