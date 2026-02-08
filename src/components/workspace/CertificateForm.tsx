@@ -7,7 +7,6 @@ interface CertificateFormProps {
     onCancel?: () => void;
     onDelete?: () => Promise<void> | void;
 
-    // NEW:
     onUploadPdf?: () => Promise<void> | void;
     pendingPdfName?: string | null;
     busy?: boolean;
@@ -48,14 +47,14 @@ function isValidHttpUrl(value: string) {
 }
 
 export default function CertificateForm({
-                                            initial,
-                                            onSubmit,
-                                            onCancel,
-                                            onDelete,
-                                            onUploadPdf,
-                                            pendingPdfName,
-                                            busy = false,
-                                        }: CertificateFormProps) {
+initial,
+onSubmit,
+onCancel,
+onDelete,
+onUploadPdf,
+pendingPdfName,
+busy = false,
+}: CertificateFormProps) {
     const isEdit = useMemo(() => Boolean((initial as any)?.id), [initial]);
 
     const [form, setForm] = useState<FormState>({
@@ -154,7 +153,7 @@ export default function CertificateForm({
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="text-slate-400 hover:text-red transition-colors text-sm"
+                        className="text-slate-400 border h-7 w-7 rounded-md border-slate-600 hover:bg-slate-800 transition-colors text-sm"
                     >
                         ✕
                     </button>
@@ -166,7 +165,7 @@ export default function CertificateForm({
                 <input
                     value={form.name}
                     onChange={(e) => handleChange("name", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     placeholder="e.g. AWS Certified Developer"
                     disabled={locked}
                 />
@@ -179,7 +178,7 @@ export default function CertificateForm({
                     <input
                         value={form.issuedBy}
                         onChange={(e) => handleChange("issuedBy", e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                         placeholder="e.g. Coursera / Google"
                         disabled={locked}
                     />
@@ -192,7 +191,7 @@ export default function CertificateForm({
                         type="date"
                         value={form.issueDate}
                         onChange={(e) => handleChange("issueDate", e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                         disabled={locked}
                     />
                     {errors.issueDate && <p className="text-xs text-red-400">{errors.issueDate}</p>}
@@ -218,7 +217,7 @@ export default function CertificateForm({
                     value={form.expiryDate}
                     onChange={(e) => handleChange("expiryDate", e.target.value)}
                     disabled={locked || form.noExpiry}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm disabled:opacity-60"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm disabled:opacity-60"
                 />
                 {errors.expiryDate && <p className="text-xs text-red-400">{errors.expiryDate}</p>}
             </div>
@@ -228,7 +227,7 @@ export default function CertificateForm({
                 <input
                     value={form.credentialUrl}
                     onChange={(e) => handleChange("credentialUrl", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     placeholder="https://..."
                     disabled={locked}
                 />
@@ -262,7 +261,7 @@ export default function CertificateForm({
                 <textarea
                     value={form.description}
                     onChange={(e) => handleChange("description", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm resize-none"
+                    className="w-full bg-secondary border border-line  rounded-md px-3 py-2 text-sm resize-none"
                     rows={3}
                     placeholder="Notes about this certificate..."
                     disabled={locked}
@@ -275,7 +274,7 @@ export default function CertificateForm({
                         type="button"
                         onClick={handleDelete}
                         disabled={locked}
-                        className="px-3 py-1.5 text-xs rounded-md border border-red-700/60 text-red-300 hover:bg-red-900/20 disabled:opacity-60"
+                        className="px-3 py-1.5 text-xs rounded-md border text-slate-400 border-slate-600 hover:border-red hover:text-red disabled:opacity-60"
                     >
                         {deleting ? "Deleting..." : "Delete"}
                     </button>

@@ -41,18 +41,18 @@ html, body, #root, main {
 }
 
 .savings-scroll::-webkit-scrollbar-thumb {
-    background: #475569;
+    background: #272f3b;
     border-radius: 2px;
 }
 
 .savings-scroll::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+    background: #272f3b;
 }
 
 /* Firefox scrollbar */
 .savings-scroll {
     scrollbar-width: thin;
-    scrollbar-color: #64748b transparent;
+    scrollbar-color: #272f3b transparent;
 }
 
 

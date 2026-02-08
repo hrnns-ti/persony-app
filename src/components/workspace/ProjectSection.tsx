@@ -54,7 +54,7 @@ export default function ProjectsSection() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     return (
-        <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-[97%]">
+        <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-[100%]">
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">Projects</h2>
@@ -94,7 +94,8 @@ export default function ProjectsSection() {
                                 <button
                                     key={p.id}
                                     onClick={() => setSelectedProjectId(p.id)}
-                                    className="snap-start flex-shrink-0 w-[270px] bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-xs flex flex-col gap-2 hover:bg-slate-850 transition-all cursor-pointer"
+                                    className="snap-start flex-shrink-0 w-[270px] bg-main border rounded-lg px-4 py-3 text-xs flex flex-col gap-2 hover:bg-slate-850 transition-all cursor-pointer"
+                                    style={{borderColor: p.color}}
                                 >
                                     <div className="flex items-start gap-2">
                                         <div className="flex-1 min-w-0">

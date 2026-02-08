@@ -49,7 +49,7 @@ export function CoursesSection() {
     }
 
     return (
-        <div className="bg-main border border-line rounded-md p-4 flex flex-col h-[90%] min-h-0 min-w-0 overflow-hidden">
+        <div className="bg-main border border-line rounded-md p-4 flex flex-col h-[100%] min-h-0 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">My Courses</h2>
                 <button

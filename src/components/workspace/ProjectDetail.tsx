@@ -72,7 +72,6 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
         } catch {}
     }, [syncKey, syncProgressFromTasks]);
 
-    // ✅ IMPORTANT: kalau sync dimatikan, batalkan debounce yang mungkin masih pending
     useEffect(() => {
         if (!syncProgressFromTasks && debounceRef.current) {
             window.clearTimeout(debounceRef.current);
@@ -94,7 +93,6 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
         return { total, done, progressFromTasks };
     }, [tasks]);
 
-    // ✅ IMPORTANT: progress hanya ambil dari tasks kalau sync ON; dan jika status done => 100
     const displayedProgress = clamp(
         project.projectStatus === "done"
             ? 100
@@ -184,10 +182,8 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
     }
 
     async function handleDone() {
-        // matikan sync supaya tidak balik ke task %
         setSyncProgressFromTasks(false);
 
-        // batalkan debounce yang mungkin masih pending
         if (debounceRef.current) {
             window.clearTimeout(debounceRef.current);
             debounceRef.current = null;
