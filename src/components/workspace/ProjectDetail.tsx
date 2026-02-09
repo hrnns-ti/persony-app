@@ -205,19 +205,19 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                             </div>
 
                             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                  {project.projectStatus}
-                </span>
+                                <span className="px-2 py-0.5 rounded-full border border-slate-700">
+                                  {project.projectStatus}
+                                </span>
 
                                 {deadline && !Number.isNaN(deadline.getTime()) && (
                                     <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                    Due {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
+                                        Due {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                    </span>
                                 )}
 
                                 <span className="px-2 py-0.5 rounded-full border border-slate-700">
-                  Tasks {stats.done}/{stats.total}
-                </span>
+                                    Tasks {stats.done}/{stats.total}
+                                </span>
 
                                 {project.repoUrl && (
                                     <a
@@ -253,14 +253,14 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                     </div>
 
                     {/* Progress */}
-                    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 mt-4">
+                    <div className="rounded-lg border border-line bg-main p-3 mt-4">
                         <div className="flex items-center justify-between">
                             <p className="text-xs text-slate-300">Progress</p>
                             <p className="text-xs text-slate-300 tabular-nums">{displayedProgress}%</p>
                         </div>
 
-                        <div className="mt-2 h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-                            <div className="h-full rounded-full bg-blue-600" style={{ width: `${displayedProgress}%` }} />
+                        <div className="mt-2 h-2 w-full rounded-full bg-line overflow-hidden">
+                            <div className="h-full rounded-full bg-slate-400" style={{ width: `${displayedProgress}%` }} />
                         </div>
 
                         <div className="mt-2 flex items-center justify-between gap-2">
@@ -281,7 +281,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                     </div>
 
                     {/* Tasks panel */}
-                    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 space-y-2">
+                    <div className="rounded-lg border border-line bg-main p-3 space-y-2">
                         <div className="flex items-center justify-between">
                             <p className="text-xs font-semibold text-slate-300">Tasks</p>
 
@@ -289,7 +289,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                 <button
                                     type="button"
                                     onClick={() => setHideDone((v) => !v)}
-                                    className="px-2 py-1 text-[11px] rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
+                                    className="px-2 py-1 text-[11px] rounded-md border border-line text-slate-300 hover:bg-slate-800"
                                 >
                                     {hideDone ? "Show done" : "Hide done"}
                                 </button>
@@ -298,7 +298,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                     type="button"
                                     onClick={clearDone}
                                     disabled={stats.done === 0}
-                                    className="px-2 py-1 text-[11px] rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                                    className="px-2 py-1 text-[11px] rounded-md border border-line text-slate-300 hover:bg-slate-800 disabled:opacity-50"
                                 >
                                     Clear
                                 </button>
@@ -315,7 +315,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                         addTask();
                                     }
                                 }}
-                                className="flex-1 bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+                                className="flex-1 bg-secondary border border-line rounded-md px-3 py-2 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
                                 placeholder="Add task…"
                                 disabled={project.projectStatus === "done"}
                             />
@@ -338,7 +338,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                                 visibleTasks.map((t) => (
                                     <div
                                         key={t.id}
-                                        className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-950 px-2.5 py-2"
+                                        className="flex items-center gap-2 rounded-md border border-line bg-secondary px-2.5 py-2"
                                     >
                                         <input
                                             type="checkbox"
@@ -379,7 +379,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                             <button
                                 type="button"
                                 onClick={handleDone}
-                                className="flex-1 px-3 py-2 text-xs rounded-md bg-emerald-600 text-white hover:bg-emerald-500"
+                                className="flex-1 px-3 py-2 text-xs rounded-md hover:border-emerald-400 text-white hover:text-emerald-400 bg-main border-line border"
                             >
                                 Mark as Done
                             </button>
@@ -396,7 +396,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                         <button
                             type="button"
                             onClick={() => setIsEditing(true)}
-                            className="flex-1 px-3 py-2 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800"
+                            className="flex-1 px-3 py-2 text-xs rounded-md border border-line text-slate-300 hover:bg-slate-800"
                         >
                             Edit Project
                         </button>
@@ -404,7 +404,7 @@ export default function ProjectDetail({ project, onClose, onUpdate, onDelete }: 
                         <button
                             type="button"
                             onClick={() => setConfirmDelete(true)}
-                            className="flex-1 px-3 py-2 text-xs rounded-md border border-red-700/60 text-red-300 hover:bg-red-900/20"
+                            className="flex-1 px-3 py-2 text-xs rounded-md border border-line hover:border-red hover:text-red"
                         >
                             Delete
                         </button>

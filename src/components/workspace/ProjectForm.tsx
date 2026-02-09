@@ -50,105 +50,6 @@ function clamp(n: number, min: number, max: number) {
     return Math.max(min, Math.min(max, n));
 }
 
-function TinyNumberStepper({
-                               value,
-                               onChange,
-                               min = 0,
-                               max = 100,
-                               step = 1,
-                               disabled = false,
-                               className = "w-24",
-                           }: {
-    value: number;
-    onChange: (next: number) => void;
-    min?: number;
-    max?: number;
-    step?: number;
-    disabled?: boolean;
-    className?: string;
-}) {
-    const [text, setText] = useState(String(value));
-
-    // sync kalau value berubah dari luar (mis. status done => 100)
-    useEffect(() => {
-        setText(String(value));
-    }, [value]);
-
-    const inc = () => onChange(clamp(value + step, min, max));
-    const dec = () => onChange(clamp(value - step, min, max));
-
-    return (
-        <div className={`relative ${className}`}>
-            <input
-                value={text}
-                disabled={disabled}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                aria-label="Progress value"
-                onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    setText(digits);
-
-                    if (digits === "") return; // biar user bisa hapus dulu saat mengetik
-                    onChange(clamp(Number(digits), min, max));
-                }}
-                onBlur={() => {
-                    // saat keluar field, pastikan valid dan tidak kosong
-                    const next = text === "" ? min : clamp(Number(text), min, max);
-                    setText(String(next));
-                    onChange(next);
-                }}
-                onKeyDown={(e) => {
-                    if (disabled) return;
-                    if (e.key === "ArrowUp") {
-                        e.preventDefault();
-                        inc();
-                    }
-                    if (e.key === "ArrowDown") {
-                        e.preventDefault();
-                        dec();
-                    }
-                }}
-                className={[
-                    "w-full rounded-md border bg-slate-900 px-3 py-2 pr-10 text-sm tabular-nums",
-                    "border-slate-700 text-slate-100 placeholder:text-slate-500",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60",
-                    disabled ? "opacity-60 cursor-not-allowed" : "cursor-text",
-                ].join(" ")}
-            />
-
-            <div className="absolute right-1 top-1 bottom-1 flex flex-col">
-                <button
-                    type="button"
-                    disabled={disabled || value >= max}
-                    onClick={inc}
-                    className={[
-                        "flex-1 w-8 rounded-md grid place-items-center",
-                        "text-slate-300 hover:bg-slate-800 active:bg-slate-700",
-                        "disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed",
-                    ].join(" ")}
-                    aria-label="Increase"
-                >
-                    <span className="text-[10px] leading-none">▲</span>
-                </button>
-
-                <button
-                    type="button"
-                    disabled={disabled || value <= min}
-                    onClick={dec}
-                    className={[
-                        "flex-1 w-8 rounded-md grid place-items-center",
-                        "text-slate-300 hover:bg-slate-800 active:bg-slate-700",
-                        "disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed",
-                    ].join(" ")}
-                    aria-label="Decrease"
-                >
-                    <span className="text-[10px] leading-none">▼</span>
-                </button>
-            </div>
-        </div>
-    );
-}
 
 export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectFormProps) {
     const initialState = useMemo<FormState>(() => {
@@ -258,7 +159,7 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                     type="text"
                     value={form.title}
                     onChange={(e) => handleChange("title", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g. API Integration"
                 />
                 {errors.title && <p className="text-xs text-red-400">{errors.title}</p>}
@@ -271,7 +172,7 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                     <select
                         value={form.projectStatus}
                         onChange={(e) => handleChange("projectStatus", e.target.value as ProjectStatus)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     >
                         <option value="planning">Planning</option>
                         <option value="designing">Designing</option>
@@ -282,40 +183,14 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-xs text-slate-400">Progress</label>
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            value={form.progress}
-                            onChange={(e) => handleChange("progress", Number(e.target.value))}
-                            className="tiny-slider"
-                            style={{ ["--value" as any]: form.progress }}
-                        />
-                        <TinyNumberStepper
-                            value={form.progress}
-                            onChange={(v) => handleChange("progress", v)}
-                            min={0}
-                            max={100}
-                            step={1}
-                            className="w-24"
-                            disabled={saving}
-                        />
-                    </div>
-                    {errors.progress && <p className="text-xs text-red-400">{errors.progress}</p>}
+                    <label className="text-xs text-slate-400">Deadline</label>
+                    <input
+                        type="date"
+                        value={form.deadline}
+                        onChange={(e) => handleChange("deadline", e.target.value)}
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-1 text-sm h-[55%]"
+                    />
                 </div>
-            </div>
-
-            {/* Deadline */}
-            <div className="space-y-1">
-                <label className="text-xs text-slate-400">Deadline</label>
-                <input
-                    type="date"
-                    value={form.deadline}
-                    onChange={(e) => handleChange("deadline", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
-                />
             </div>
 
             {/* Repo URL */}
@@ -325,7 +200,7 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                     type="url"
                     value={form.repoUrl}
                     onChange={(e) => handleChange("repoUrl", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     placeholder="https://github.com/..."
                 />
                 {errors.repoUrl && <p className="text-xs text-red-400">{errors.repoUrl}</p>}
@@ -345,10 +220,10 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                     type="text"
                     value={form.tagsText}
                     onChange={(e) => handleChange("tagsText", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     placeholder="e.g. frontend, auth, refactor"
                 />
-                <p className="text-[11px] text-slate-500">Pisahkan dengan koma.</p>
+                <p className="text-[11px] text-slate-500">Separate with coma.</p>
             </div>
 
             {/* Description */}
@@ -357,7 +232,7 @@ export default function ProjectForm({ initial, onSubmit, onCancel }: ProjectForm
                 <textarea
                     value={form.description}
                     onChange={(e) => handleChange("description", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 savings-scroll rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full bg-secondary border border-line savings-scroll rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     rows={3}
                     placeholder="Short description..."
                 />

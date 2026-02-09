@@ -12,10 +12,10 @@ function truncate(text: string, max = 50) {
 }
 
 function ProgressBar({
-                         value,
-                         className = "",
-                         showLabel = true,
-                     }: {
+    value,
+    className = "",
+    showLabel = true,
+}: {
     value: number;
     className?: string;
     showLabel?: boolean;
@@ -32,7 +32,7 @@ function ProgressBar({
             )}
 
             <div className="relative h-2 rounded-full bg-slate-800 border border-slate-700 overflow-hidden">
-                <div className="h-full rounded-full bg-blue-600" style={{ width: `${v}%` }} />
+                <div className="h-full rounded-full bg-slate-400" style={{ width: `${v}%` }} />
             </div>
         </div>
     );
