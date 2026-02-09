@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "persony",
+        "title": "Persony",
         "width": 1900,
-        "height": 1600
+        "height": 1600,
+        "maximized": true,
+        "resizable": true,
+        "decorations": false
       }
     ],
     "security": {

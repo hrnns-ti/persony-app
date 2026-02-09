@@ -23,11 +23,11 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     ] as const;
 
     return (
-        <aside className="w-64 bg-main border-r border-line h-screen flex w-[25%] flex-col p-10 sticky top-0">
+        <aside className=" bg-main border-r border-line h-screen flex w-[25%] flex-col p-10 sticky top-0">
             {/* Greeting Card */}
             <div className="bg-secondary border border-line rounded-lg p-6">
                 <p className="font-inconsola font-semibold text-sm text-slate-400 mb-1">Hello,</p>
-                <h2 className="text-xl font-bold text-white font-inconsola font-semibold">Haerunnas</h2>
+                <h2 className="text-xl text-white font-inconsola font-semibold">Haerunnas</h2>
                 <p className="text-xs text-slate-500 mt-2 font-inconsola font-semibold">{getGreeting()}</p>
             </div>
 
@@ -39,10 +39,10 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                         <button
                             key={item.id}
                             onClick={() => onTabChange(item.id)}
-                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left font-medium transition-all group ${
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left ring-0 active:ring-0 outline-none focus:outline-none focus-visible:ring-1 focus:ring-0 focus-visible:ring-blue-500 focus-visible:ring-offset-0 font-medium transition-all group ${
                                 active
                                     ? 'text-blue-300 bg-slate-800/60 border border-blue-500/40 shadow-lg'
-                                    : 'text-slate-400 hover:text-blue-400'
+                                    : 'text-slate-400 hover:text-blue-400 border border-transparent'
                             }`}
                         >
                             <item.icon
@@ -58,7 +58,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
             {/* Bottom Section */}
             <div className="pt-6 border-line">
-                <button className="bg-secondary w-full font-semibold border border-line px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-medium text-md">
+                <button className="bg-secondary w-full border border-line px-4 py-2 rounded-lg text-slate-400 hover:text-white transition-all font-medium text-md">
                     Log Out
                 </button>
             </div>
