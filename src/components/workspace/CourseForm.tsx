@@ -114,7 +114,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="text-slate-400 hover:text-red transition-colors border hover:border-red border-slate-600 rounded-md p-1"
+                        className="text-slate-400 border border-slate-600 text-slate-300 hover:bg-slate-800  rounded-md p-1"
                         aria-label="Close modal"
                         title="Close"
                     >
@@ -132,7 +132,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                     type="text"
                     value={form.title}
                     onChange={(e) => handleChange("title", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                     placeholder="e.g. UI/UX Design"
                 />
             </div>
@@ -145,7 +145,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                         type="text"
                         value={form.code}
                         onChange={(e) => handleChange("code", e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                         placeholder="e.g. UI101"
                     />
                 </div>
@@ -155,7 +155,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                     <select
                         value={form.status}
                         onChange={(e) => handleChange("status", e.target.value as CourseStatus)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     >
                         <option value="active">Active</option>
                         <option value="completed">Completed</option>
@@ -172,7 +172,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                         type="text"
                         value={form.semester}
                         onChange={(e) => handleChange("semester", e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                         placeholder="e.g. Fall 2024"
                     />
                 </div>
@@ -190,7 +190,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                 <textarea
                     value={form.description}
                     onChange={(e) => handleChange("description", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                     rows={3}
                     placeholder="Course description..."
                 />
@@ -204,7 +204,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                         type="date"
                         value={form.startDate}
                         onChange={(e) => handleChange("startDate", e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     />
                 </div>
 
@@ -214,7 +214,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                         type="date"
                         value={form.endDate}
                         onChange={(e) => handleChange("endDate", e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm"
+                        className="w-full bg-secondary border border-line rounded-md px-3 py-2 text-sm"
                     />
                 </div>
             </div>
@@ -237,7 +237,7 @@ export default function CourseForm({ initial, onSubmit, onCancel, onDelete }: Co
                         type="button"
                         onClick={handleDelete}
                         disabled={busy}
-                        className="px-3 py-1.5 text-xs rounded-md border border-red-600 text-red-300 hover:bg-red-600 hover:text-white disabled:opacity-60"
+                        className="px-3 py-1.5 text-xs rounded-md border border-slate-600 border-red-600 hover:text-red hover:border-red text-slate-300 disabled:opacity-60"
                     >
                         {deleting ? "Deleting..." : "Delete"}
                     </button>

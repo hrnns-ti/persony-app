@@ -78,8 +78,9 @@ export function CoursesSection() {
                         courses.map((c) => (
                             <div
                                 key={c.id}
-                                className="group relative bg-slate-900 border border-slate-800 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
+                                className="group relative bg-main border rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
                                 onClick={() => openEdit(c)}
+                                style={{borderColor: c.color}}
                             >
                                 <div className="h-2 rounded-xl mb-2 flex-shrink-0"
                                      style={{backgroundColor: c.color || '#6366f1'}}/>
@@ -151,7 +152,7 @@ export function CoursesSection() {
                         <button
                             type="button"
                             onClick={handleDeleteConfirmed}
-                            className="px-4 py-1.5 text-xs rounded-md bg-red-600 text-white hover:bg-red-500"
+                            className="px-4 py-1.5 text-xs rounded-md border border-slate-600 hover:border-red text-slate-300 hover:text-red"
                         >
                             Delete
                         </button>
