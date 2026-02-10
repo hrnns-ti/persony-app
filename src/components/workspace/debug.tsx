@@ -1,4 +1,3 @@
-// src/components/debug/CertificatesDebug.tsx
 import { useState } from 'react';
 import { useCertificates } from '../../hooks/workspace/useCertificates.ts';
 

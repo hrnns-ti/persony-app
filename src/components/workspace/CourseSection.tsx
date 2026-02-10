@@ -49,7 +49,7 @@ export function CoursesSection() {
     }
 
     return (
-        <div className="bg-main border border-line rounded-md p-4 flex flex-col h-[100%] min-h-0 min-w-0 overflow-hidden">
+        <div className="bg-main border border-line rounded-md p-4 flex flex-col h-[100%] min-h-0 min-w-0 overflow-hidden hover:border-slate-700 transition-all">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">My Courses</h2>
                 <button
@@ -78,7 +78,7 @@ export function CoursesSection() {
                         courses.map((c) => (
                             <div
                                 key={c.id}
-                                className="group relative bg-main border rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
+                                className="group relative bg-main border hover:border-slate-700 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
                                 onClick={() => openEdit(c)}
                                 style={{borderColor: c.color}}
                             >

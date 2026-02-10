@@ -1,42 +1,39 @@
-import React, { useState } from 'react';
-import Sidebar, { AppTab } from './components/dashboard/Sidebar';
+import React, { useState } from "react";
+import Sidebar, { AppTab } from "./components/dashboard/Sidebar";
+import HoverTitleBar from "./components/ui/HoverTitleBar";
 
-import FinancePage from './pages/Finance';
-import WorkspacePage from './pages/Workspace';
+import FinancePage from "./pages/Finance";
+import WorkspacePage from "./pages/Workspace";
 
 function App() {
-    const [activeTab, setActiveTab] = useState<AppTab>('finance');
+    const [activeTab, setActiveTab] = useState<AppTab>("finance");
 
     let content: React.ReactNode;
     switch (activeTab) {
-        case 'workspace':
+        case "workspace":
             content = <WorkspacePage />;
             break;
-        case 'finance':
+        case "finance":
             content = <FinancePage />;
             break;
-        case 'calendar':
-            content = (
-                <div className="flex-1 p-8 text-slate-300">
-                    Calendar coming soon...
-                </div>
-            );
+        case "calendar":
+            content = <div className="p-8 text-slate-300">Calendar coming soon...</div>;
             break;
-        case 'dashboard':
+        case "dashboard":
         default:
-            content = (
-                <div className="flex-1 p-8 text-slate-300">
-                    Dashboard coming soon...
-                </div>
-            );
+            content = <div className="p-8 text-slate-300">Dashboard coming soon...</div>;
     }
 
     return (
-        <div className="font-inconsola min-h-screen h-screen bg-main text-slate-100 flex overflow-hidden">
-            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-            <main className="flex-1 bg-main overflow-hidden flex flex-col">
-                {content}
-            </main>
+        <div className="font-inconsola h-screen w-screen bg-main text-slate-100 overflow-hidden relative">
+            <HoverTitleBar />
+
+            <div className="flex h-full min-h-0">
+                <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+                <main className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
+                    {content}
+                </main>
+            </div>
         </div>
     );
 }

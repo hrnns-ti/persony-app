@@ -112,7 +112,7 @@ export default function CertificatesSection() {
     }
 
     return (
-        <div className="bg-main border border-line rounded-md p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
+        <div className="bg-main border hover:border-slate-700 border-line rounded-md p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">
                     Certificates
@@ -153,7 +153,7 @@ export default function CertificatesSection() {
                                 return (
                                     <div
                                         key={c.id}
-                                        className="group relative bg-main border border-line rounded-md flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                                        className="group relative bg-main border hover:border-slate-700 border-line rounded-md flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md"
                                         onClick={() => openEdit(c)}
                                     >
                                         {/* PREVIEW */}
@@ -289,8 +289,8 @@ export default function CertificatesSection() {
             >
                 <div className="space-y-4 text-sm text-slate-300">
                     <p>
-                        Are you sure you want to delete{" "}
-                        <span className="font-semibold hover:text-red">{confirmDelete?.name}</span>?
+                            Are you sure you want to delete{" "}
+                        <span className="font-semibold border border-line hover:text-red">{confirmDelete?.name}</span>?
                     </p>
 
                     <div className="flex justify-end gap-2">
@@ -305,7 +305,7 @@ export default function CertificatesSection() {
                         <button
                             type="button"
                             onClick={handleDeleteConfirmed}
-                            className="px-4 py-1.5 text-xs border border-slate-600 rounded-md bg-red-600 hover:text-red text-slate-300 hover:border-red"
+                            className="px-4 py-1.5 text-xs border border-line rounded-md bg-red hover:text-red text-slate-400 hover:border-red"
                         >
                             Delete
                         </button>

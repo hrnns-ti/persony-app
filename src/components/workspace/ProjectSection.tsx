@@ -54,7 +54,7 @@ export default function ProjectsSection() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     return (
-        <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-[100%]">
+        <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-[100%] hover:border-slate-700 transition-all">
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <h2 className="mx-1 text-sm font-semibold text-slate-400">Projects</h2>

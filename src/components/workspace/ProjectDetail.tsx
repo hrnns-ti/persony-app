@@ -1,4 +1,3 @@
-// src/components/workspace/ProjectDetail.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import ProjectForm from "./ProjectForm";
 import type { Project } from "../../types/workspace";

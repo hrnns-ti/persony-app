@@ -1,10 +1,11 @@
 import ProjectsSection from '../components/workspace/ProjectSection';
 import { CoursesSection } from "../components/workspace/CourseSection.tsx";
 import CertificatesSection from "../components/workspace/CertificateSection";
+import NotesSection from "../components/workspace/NotesSection.tsx";
 
 export default function WorkspacePage() {
     return (
-        <main className="flex-1 bg-main overflow-hidden flex flex-col">
+        <main className="mt-3 flex-1 bg-main overflow-hidden flex flex-col">
             <div className="flex-1 p-8 overflow-y-auto overflow-hidden">
                 <div className="grid grid-cols-[75%,25%] gap-4 h-full">
                     <div className="grid grid-rows-[23%,25.5%,50%] gap-4 h-full min-h-0">
@@ -26,8 +27,8 @@ export default function WorkspacePage() {
                         <div className="flex flex-col overflow-hidden border border-line rounded-md px-3 py-2 text-sm">
                             Right sidebar (coming soon)
                         </div>
-                        <div className="flex flex-col overflow-hidden border border-line rounded-md px-3 py-2 text-sm">
-                            Right sidebar (coming soon)
+                        <div className="flex flex-col overflow-hidden">
+                            <NotesSection />
                         </div>
                     </div>
                 </div>

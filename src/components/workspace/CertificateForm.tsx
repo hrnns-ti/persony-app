@@ -47,13 +47,13 @@ function isValidHttpUrl(value: string) {
 }
 
 export default function CertificateForm({
-initial,
-onSubmit,
-onCancel,
-onDelete,
-onUploadPdf,
-pendingPdfName,
-busy = false,
+    initial,
+    onSubmit,
+    onCancel,
+    onDelete,
+    onUploadPdf,
+    pendingPdfName,
+    busy = false,
 }: CertificateFormProps) {
     const isEdit = useMemo(() => Boolean((initial as any)?.id), [initial]);
 

@@ -13,6 +13,10 @@
     "fs:allow-appdata-write-recursive",
     "fs:allow-appdata-read-recursive",
     "opener:default",
+    "core:window:default",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
     {
       "identifier": "opener:allow-open-path",
       "allow": [
