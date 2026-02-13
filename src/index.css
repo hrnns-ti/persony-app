@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+    font-family: "Inter";
+    src: url("/fonts/Inter-Variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    src: url("/fonts/") format("woff2");
+    font-weight: 100 800;
+    font-style: normal;
+}
+
+/* This changes the tldraw UI font (menus/panels/buttons) */
+.tl-container {
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+
 /* Custom Scrollbar untuk dark theme */
 .savings-scroll::-webkit-scrollbar {
     width: 4px;
