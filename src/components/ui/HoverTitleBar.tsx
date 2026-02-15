@@ -7,14 +7,14 @@ export default function HoverTitleBar() {
     return (
         <>
             <div
-                className="fixed top-0 left-0 right-0 h-3 z-[9998]"
+                className="fixed top-0 left-0 right-0 h-3 z-[9998] "
                 onMouseEnter={() => setShow(true)}
             />
 
             <div
                 className={[
-                    "fixed top-0 left-0 right-0 z-[9999]",
-                    "transition-all duration-200 ease-out",
+                    "fixed top-1 right-50 z-[9999] rounded-full justify-center items-center",
+                    "transition-all duration-200 ease-in-out",
                     show ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
                 ].join(" ")}
                 onMouseLeave={() => setShow(false)}

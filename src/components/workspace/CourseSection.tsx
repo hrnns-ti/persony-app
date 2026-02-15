@@ -1,50 +1,94 @@
-import { useState } from 'react';
-import { useCourses } from '../../hooks/workspace/useCourses';
-import CourseForm from './CourseForm';
-import Modal from '../ui/Modal';
-import type { Course } from '../../types/workspace';
+import { useEffect, useMemo, useState } from "react"
+import { useCourses } from "../../hooks/workspace/useCourses"
+import CourseForm from "./CourseForm"
+import Modal from "../ui/Modal"
+import type { Course } from "../../types/workspace"
+
+const COLOR_KEY_PREFIX = "course_color:"
+
+function getStoredColor(id: string) {
+    try {
+        return localStorage.getItem(COLOR_KEY_PREFIX + id) || ""
+    } catch {
+        return ""
+    }
+}
+
+function setStoredColor(id: string, color: string) {
+    try {
+        if (!color) return
+        localStorage.setItem(COLOR_KEY_PREFIX + id, color)
+    } catch {
+        // ignore
+    }
+}
+
+function safeMonth(d: any) {
+    if (!d) return ""
+    const date = d instanceof Date ? d : new Date(d)
+    if (Number.isNaN(date.getTime())) return ""
+    return date.toLocaleDateString(undefined, { month: "short" })
+}
 
 export function CoursesSection() {
-    const {courses, addCourse, updateCourse, removeCourse, loading} = useCourses();
+    const { courses, addCourse, updateCourse, removeCourse, loading } = useCourses()
 
-    const [isOpen, setIsOpen] = useState(false);
-    const [editing, setEditing] = useState<Course | null>(null);
-    const [confirmDelete, setConfirmDelete] = useState<Course | null>(null);
+    const [isOpen, setIsOpen] = useState(false)
+    const [editing, setEditing] = useState<Course | null>(null)
+    const [confirmDelete, setConfirmDelete] = useState<Course | null>(null)
 
     function closeForm() {
-        setIsOpen(false);
-        setEditing(null);
+        setIsOpen(false)
+        setEditing(null)
     }
 
     function openCreate() {
-        setEditing(null);
-        setIsOpen(true);
+        setEditing(null)
+        setIsOpen(true)
     }
 
     function openEdit(course: Course) {
-        setEditing(course);
-        setIsOpen(true);
+        setEditing(course)
+        setIsOpen(true)
     }
 
-    async function handleSubmit(data: Omit<Course, 'id'>) {
-        if (editing) {
-            await updateCourse(editing.id, data);
-        } else {
-            await addCourse(data);
+    // ✅ whenever courses arrive, persist any color we do have
+    useEffect(() => {
+        for (const c of courses) {
+            if (c?.id && c?.color) setStoredColor(c.id, c.color)
         }
-        closeForm();
+    }, [courses])
+
+    // ✅ derive a “stable color” even if c.color is missing on reload
+    const coursesWithStableColor = useMemo(() => {
+        return courses.map((c) => {
+            const stored = c.id ? getStoredColor(c.id) : ""
+            const stableColor = (c.color || stored || "#6366f1") as string
+            return { ...c, color: stableColor }
+        })
+    }, [courses])
+
+    async function handleSubmit(data: Omit<Course, "id">) {
+        if (editing) {
+            await updateCourse(editing.id, data)
+            setStoredColor(editing.id, data.color as string)
+        } else {
+            const created = await addCourse(data as any)
+            // if your addCourse returns the created course (common), persist by id:
+            if (created?.id) setStoredColor(created.id, data.color as string)
+        }
+        closeForm()
     }
 
     async function handleDeleteConfirmed() {
-        if (!confirmDelete) return;
+        if (!confirmDelete) return
 
-        await removeCourse(confirmDelete.id);
+        await removeCourse(confirmDelete.id)
 
-        setConfirmDelete(null);
-        // jaga-jaga, kalau yang dihapus sedang diedit
+        setConfirmDelete(null)
         if (editing?.id === confirmDelete.id) {
-            setEditing(null);
-            setIsOpen(false);
+            setEditing(null)
+            setIsOpen(false)
         }
     }
 
@@ -68,75 +112,66 @@ export function CoursesSection() {
                         </div>
                     )}
 
-                    {!loading && courses.length === 0 && (
+                    {!loading && coursesWithStableColor.length === 0 && (
                         <div className="flex items-center justify-center w-full h-32 text-xs text-slate-500">
                             No courses yet. Add one to get started.
                         </div>
                     )}
 
                     {!loading &&
-                        courses.map((c) => (
-                            <div
-                                key={c.id}
-                                className="group relative bg-main border hover:border-slate-700 rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
-                                onClick={() => openEdit(c)}
-                                style={{borderColor: c.color}}
-                            >
-                                <div className="h-2 rounded-xl mb-2 flex-shrink-0"
-                                     style={{backgroundColor: c.color || '#6366f1'}}/>
+                        coursesWithStableColor.map((c) => {
+                            const color = c.color || "#6366f1"
+                            const start = safeMonth(c.startDate)
+                            const end = safeMonth(c.endDate)
 
-                                <div className="flex-1 mb-2">
-                                    <p className="text-slate-100 text-sm font-semibold line-clamp-2 mb-1">
-                                        {c.title}
-                                    </p>
-                                    {c.code && (
-                                        <p className="text-slate-400 text-xs">
-                                            {c.code} • {c.semester}
-                                        </p>
-                                    )}
+                            return (
+                                <div
+                                    key={c.id}
+                                    className="group relative bg-main border rounded-md w-44 h-32 flex flex-col p-3 hover:bg-slate-850 transition-all cursor-pointer shadow-sm hover:shadow-md flex-shrink-0"
+                                    onClick={() => openEdit(c)}
+                                    style={{ borderColor: color }}
+                                >
+                                    <div className="h-2 rounded-xl mb-2 flex-shrink-0" style={{ backgroundColor: color }} />
+
+                                    <div className="flex-1 mb-2">
+                                        <p className="text-slate-100 text-sm font-semibold line-clamp-2 mb-1">{c.title}</p>
+                                        {c.code && <p className="text-slate-400 text-xs">{c.code} • {c.semester}</p>}
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs text-slate-400 space-x-1">
+                    <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
+                      {c.status}
+                    </span>
+
+                                        {start && end ? (
+                                            <span className="text-slate-500 text-[10px] truncate">
+                        {start} – {end}
+                      </span>
+                                        ) : null}
+                                    </div>
                                 </div>
-
-                                <div className="flex items-center justify-between text-xs text-slate-400 space-x-1">
-                                    <span
-                                        className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
-                                    {c.status}
-                                    </span>
-
-                                    {c.startDate && c.endDate && (
-                                        <span className="text-slate-500 text-[10px] truncate">
-                                            {c.startDate.toLocaleDateString(undefined, {month: 'short'})} –{' '}
-                                            {c.endDate.toLocaleDateString(undefined, {month: 'short'})}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                 </div>
             </div>
 
-            {/* Modal Form Add/Edit */}
-            <Modal isOpen={isOpen} onClose={closeForm} title={editing ? 'Edit Course' : 'Add Course'}>
+            <Modal isOpen={isOpen} onClose={closeForm} title={editing ? "Edit Course" : "Add Course"}>
                 <CourseForm
                     initial={editing ?? undefined}
                     onSubmit={handleSubmit}
                     onCancel={closeForm}
                     onDelete={() => {
-                        if (!editing) return;
-                        setIsOpen(false);
-                        setConfirmDelete(editing);
+                        if (!editing) return
+                        setIsOpen(false)
+                        setConfirmDelete(editing)
                     }}
                 />
             </Modal>
 
-            {/* Confirm Delete Modal */}
-            <Modal
-                isOpen={!!confirmDelete}
-                onClose={() => setConfirmDelete(null)}
-                title="Delete Course"
-            >
+            <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete Course">
                 <div className="space-y-4 text-sm text-slate-300">
                     <p>
-                        Are you sure you want to delete{' '}
+                        Are you sure you want to delete{" "}
                         <span className="font-semibold">{confirmDelete?.title}</span>?
                     </p>
 
@@ -160,5 +195,5 @@ export function CoursesSection() {
                 </div>
             </Modal>
         </div>
-    );
+    )
 }

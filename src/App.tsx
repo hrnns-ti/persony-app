@@ -26,7 +26,9 @@ function App() {
 
     return (
         <div className="font-inconsola h-screen w-screen bg-main text-slate-100 overflow-hidden relative">
-            <HoverTitleBar />
+            <div className="relative flex flex-col w-full justify-center items-center">
+                <HoverTitleBar />
+            </div>
 
             <div className="flex h-full min-h-0">
                 <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />

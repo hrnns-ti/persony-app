@@ -18,19 +18,24 @@ function formatDate(d: Date) {
 
 export default function NotesSection() {
     const { notes, loading, error, addNote, updateNote, removeNote } = useNotes()
+
     const [query, setQuery] = useState("")
     const [creating, setCreating] = useState(false)
     const [openNoteId, setOpenNoteId] = useState<string | null>(null)
 
+    const [titleOverrides, setTitleOverrides] = useState<Record<string, string>>({})
+
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
         if (!q) return notes
+
         return notes.filter((n) => {
-            const inTitle = (n.title || "").toLowerCase().includes(q)
+            const title = titleOverrides[n.id] ?? n.title ?? ""
+            const inTitle = title.toLowerCase().includes(q)
             const inTags = (n.tags || []).some((t) => t.toLowerCase().includes(q))
             return inTitle || inTags
         })
-    }, [notes, query])
+    }, [notes, query, titleOverrides])
 
     async function handleCreate() {
         if (creating) return
@@ -42,7 +47,7 @@ export default function NotesSection() {
                 content: "",
                 isPinned: false,
             } as any)
-
+            setTitleOverrides((prev) => ({ ...prev, [created.id]: created.title ?? "Untitled canvas" }))
             setOpenNoteId(created.id)
         } finally {
             setCreating(false)
@@ -52,7 +57,13 @@ export default function NotesSection() {
     return (
         <>
             {openNoteId ? (
-                <NotesCanvas noteId={openNoteId} onBack={() => setOpenNoteId(null)} />
+                <NotesCanvas
+                    noteId={openNoteId}
+                    onBack={() => setOpenNoteId(null)}
+                    onTitleLocalUpdate={(id, title) => {
+                        setTitleOverrides((prev) => (prev[id] === title ? prev : { ...prev, [id]: title }))
+                    }}
+                />
             ) : null}
 
             <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-full">
@@ -88,45 +99,56 @@ export default function NotesSection() {
                     ) : filtered.length === 0 ? (
                         <div className="text-xs text-white/50">No notes found.</div>
                     ) : (
-                        filtered.map((n) => (
-                            <div
-                                key={n.id}
-                                className="group rounded-lg border border-line bg-black/10 hover:bg-black/20 transition px-3 py-2 flex items-center justify-between gap-3"
-                            >
-                                <button className="min-w-0 flex-1 text-left" onClick={() => setOpenNoteId(n.id)}>
-                                    <div className="flex items-center gap-2">
-                                        {n.isPinned ? <span className="text-xs">📌</span> : null}
-                                        <div className="truncate text-sm text-white">{n.title || "Untitled"}</div>
-                                    </div>
-                                    <div className="mt-0.5 text-[11px] text-white/50">
-                                        Updated {formatDate(n.updatedAt)}
-                                        {n.tags?.length ? ` • ${n.tags.join(", ")}` : ""}
-                                    </div>
-                                </button>
+                        filtered.map((n) => {
+                            const displayTitle = titleOverrides[n.id] ?? n.title ?? "Untitled"
 
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
-                                    <button
-                                        className="px-2 py-1 rounded-md border border-line text-[11px] text-white hover:bg-white/5"
-                                        onClick={() => updateNote(n.id, { isPinned: !n.isPinned })}
-                                        title={n.isPinned ? "Unpin" : "Pin"}
-                                    >
-                                        {n.isPinned ? "Unpin" : "Pin"}
+                            return (
+                                <div
+                                    key={n.id}
+                                    className="group rounded-lg border border-line bg-black/10 hover:bg-black/20 transition px-3 py-2 flex items-center justify-between gap-3"
+                                >
+                                    <button className="min-w-0 flex-1 text-left" onClick={() => setOpenNoteId(n.id)}>
+                                        <div className="flex items-center gap-2">
+                                            {n.isPinned ? <span className="text-xs">📌</span> : null}
+                                            <div className="truncate text-sm text-white">{displayTitle}</div>
+                                        </div>
+                                        <div className="mt-0.5 text-[11px] text-white/50">
+                                            Updated {formatDate(n.updatedAt)}
+                                            {n.tags?.length ? ` • ${n.tags.join(", ")}` : ""}
+                                        </div>
                                     </button>
 
-                                    <button
-                                        className="px-2 py-1 rounded-md border border-red-500/40 text-[11px] text-red-300 hover:bg-red-500/10"
-                                        onClick={async () => {
-                                            const ok = confirm(`Delete "${n.title || "Untitled"}"?`)
-                                            if (!ok) return
-                                            await removeNote(n.id)
-                                        }}
-                                        title="Delete"
-                                    >
-                                        Delete
-                                    </button>
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+                                        <button
+                                            className="px-2 py-1 rounded-md border border-line text-[11px] text-white hover:bg-white/5"
+                                            onClick={() => updateNote(n.id, { isPinned: !n.isPinned })}
+                                            title={n.isPinned ? "Unpin" : "Pin"}
+                                        >
+                                            {n.isPinned ? "Unpin" : "Pin"}
+                                        </button>
+
+                                        <button
+                                            className="px-2 py-1 rounded-md border border-red-500/40 text-[11px] text-red-300 hover:bg-red-500/10"
+                                            onClick={async () => {
+                                                const ok = confirm(`Delete "${displayTitle}"?`)
+                                                if (!ok) return
+                                                await removeNote(n.id)
+
+                                                setTitleOverrides((prev) => {
+                                                    if (!(n.id in prev)) return prev
+                                                    const next = { ...prev }
+                                                    delete next[n.id]
+                                                    return next
+                                                })
+                                            }}
+                                            title="Delete"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            )
+                        })
                     )}
                 </div>
             </div>

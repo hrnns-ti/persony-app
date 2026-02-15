@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import {
     DefaultRichTextToolbar,
     DefaultRichTextToolbarContent,
@@ -28,12 +28,6 @@ import { EditorState as TextEditorState } from "@tiptap/pm/state"
 import { getAssetUrls } from "@tldraw/assets/selfHosted"
 import { noteService } from "../../services/workspace.service/note"
 
-/**
- * -----------------------------
- * Utilities
- * -----------------------------
- */
-
 function throttle<T extends (...args: any[]) => void>(fn: T, waitMs: number) {
     let last = 0
     let timeout: ReturnType<typeof setTimeout> | null = null
@@ -61,13 +55,20 @@ function throttle<T extends (...args: any[]) => void>(fn: T, waitMs: number) {
             }
         }
 
+    ;(wrapped as any).flush = () => {
+        if (timeout) clearTimeout(timeout)
+        timeout = null
+        last = Date.now()
+        if (lastArgs) fn(...lastArgs)
+    }
+
     ;(wrapped as any).cancel = () => {
         if (timeout) clearTimeout(timeout)
         timeout = null
         lastArgs = null
     }
 
-    return wrapped as T & { cancel: () => void }
+    return wrapped as T & { cancel: () => void; flush: () => void }
 }
 
 async function blobToDataUrl(blob: Blob) {
@@ -79,9 +80,6 @@ async function blobToDataUrl(blob: Blob) {
     })
 }
 
-/**
- * ✅ Offline image store (stores base64 inside snapshot)
- */
 const assets: TLAssetStore = {
     async upload(_asset, file) {
         const src = await blobToDataUrl(file)
@@ -93,48 +91,19 @@ const assets: TLAssetStore = {
     async remove(_assetIds) {},
 }
 
-/**
- * -----------------------------
- * Self-hosted tldraw assets
- * -----------------------------
- */
 const baseAssetUrls = getAssetUrls({ baseUrl: "/tldraw" })
 
-/**
- * ✅ Override default tldraw fonts (the 4 built-in families)
- * If you ONLY want to override mono, delete the other keys.
- */
 const assetUrls = {
     ...baseAssetUrls,
     fonts: {
         ...(baseAssetUrls as any).fonts,
-        // Your wish: make tldraw_mono use Google Sans Code
         tldraw_mono: "/fonts/GoogleSansCode-Regular.woff2",
-
-        // Optional: if you want sans to be Google Sans
         tldraw_sans: "/fonts/GoogleSans-Regular.woff2",
-
-        // Optional: keep these default unless you really want to change them:
-        // tldraw_serif: "/fonts/SomeSerif.woff2",
-        // tldraw_draw: "/fonts/SomeDraw.woff2",
     },
 }
 
-/**
- * -----------------------------
- * Rich text font dropdown (TipTap)
- * -----------------------------
- *
- * We map:
- *   family -> style(normal/italic) -> weight(normal/bold) -> TLFontFace
- *
- * tldraw’s rich text font tracking uses this to know what to preload and export. :contentReference[oaicite:2]{index=2}
- */
-const extensionFontFamilies: Record<
-    string,
-    Record<string, Record<string, TLFontFace>>
-> = {
-    "Inter": {
+const extensionFontFamilies: Record<string, Record<string, Record<string, TLFontFace>>> = {
+    Inter: {
         normal: {
             normal: {
                 family: "Inter",
@@ -204,7 +173,6 @@ const extensionFontFamilies: Record<
                 weight: "400",
                 style: "normal",
             },
-            // you don’t have a bold file, so we still map bold to regular (browser may synthesize)
             bold: {
                 family: "Google Sans Code",
                 src: { url: "/fonts/GoogleSansCode-Regular.woff2", format: "woff2" },
@@ -228,7 +196,7 @@ const extensionFontFamilies: Record<
         },
     },
 
-    "Consolas": {
+    Consolas: {
         normal: {
             normal: {
                 family: "Consolas",
@@ -259,7 +227,7 @@ const extensionFontFamilies: Record<
         },
     },
 
-    "SusahKali": {
+    SusahKali: {
         normal: {
             normal: {
                 family: "SusahKali",
@@ -299,10 +267,6 @@ const fontOptions = [
     })),
 ]
 
-/**
- * Optional font sizes.
- * You can add/remove whatever you want.
- */
 const fontSizeOptions = [
     { label: "Small", value: "12px" },
     { label: "Normal", value: "16px" },
@@ -312,21 +276,11 @@ const fontSizeOptions = [
     { label: "Huge", value: "32px" },
 ]
 
-/**
- * Custom toolbar (adds font dropdown + keeps default toolbar items)
- * Pattern from tldraw example. :contentReference[oaicite:3]{index=3}
- */
 const components: TLComponents = {
     RichTextToolbar: () => {
         const editor = useEditor()
-        const textEditor = useValue(
-            "textEditor",
-            () => editor.getRichTextEditor(),
-            [editor]
-        )
-        const [, setTextEditorState] = useState<TextEditorState | null>(
-            textEditor?.state ?? null
-        )
+        const textEditor = useValue("textEditor", () => editor.getRichTextEditor(), [editor])
+        const [, setTextEditorState] = useState<TextEditorState | null>(textEditor?.state ?? null)
 
         useEffect(() => {
             if (!textEditor) {
@@ -334,9 +288,7 @@ const components: TLComponents = {
                 return
             }
 
-            const handleTransaction = ({
-                                           editor: te,
-                                       }: TextEditorEvents["transaction"]) => {
+            const handleTransaction = ({ editor: te }: TextEditorEvents["transaction"]) => {
                 setTextEditorState(te.state)
             }
 
@@ -349,20 +301,18 @@ const components: TLComponents = {
 
         if (!textEditor) return null
 
-        const currentFontFamily =
-            textEditor.getAttributes("textStyle").fontFamily ?? "DEFAULT"
+        const currentFontFamily = textEditor.getAttributes("textStyle").fontFamily ?? "DEFAULT"
         const currentFontSize = textEditor.getAttributes("textStyle").fontSize ?? ""
 
         return (
             <DefaultRichTextToolbar>
                 <select
-                    className="mx-2 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-100"
+                    className=" rounded-md mx-2 px-2 py-1 text-xs"
                     value={currentFontFamily}
                     onPointerDown={editor.markEventAsHandled}
                     onChange={(e) => {
                         const v = e.target.value
                         if (v === "DEFAULT") {
-                            // TipTap provides unsetFontFamily when using FontFamily extension
                             ;(textEditor as any)?.chain().focus().unsetFontFamily().run()
                         } else {
                             ;(textEditor as any)?.chain().focus().setFontFamily(v).run()
@@ -377,7 +327,7 @@ const components: TLComponents = {
                 </select>
 
                 <select
-                    className="mx-2 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-100"
+                    className=" rounded-md px-2 mx-2 py-1 text-xs"
                     value={currentFontSize}
                     onPointerDown={editor.markEventAsHandled}
                     onChange={(e) => {
@@ -400,10 +350,6 @@ const components: TLComponents = {
     },
 }
 
-/**
- * This tells tldraw how to detect & preload fonts from rich text nodes.
- * Official pattern. :contentReference[oaicite:4]{index=4}
- */
 const textOptions: Partial<TLTextOptions> = {
     tipTapConfig: {
         extensions: [...tipTapDefaultExtensions, FontFamily, TextStyleKit],
@@ -411,7 +357,6 @@ const textOptions: Partial<TLTextOptions> = {
     addFontsFromNode(node, state, addFont) {
         state = defaultAddFontsFromNode(node, state, addFont)
 
-        // Track fontFamily marks down the tree
         for (const mark of node.marks) {
             if (
                 mark.type.name === "textStyle" &&
@@ -423,7 +368,6 @@ const textOptions: Partial<TLTextOptions> = {
             }
         }
 
-        // Add our custom font face if it matches current style/weight
         const font = extensionFontFamilies[state.family]?.[state.style]?.[state.weight]
         if (font) addFont(font)
 
@@ -434,16 +378,16 @@ const textOptions: Partial<TLTextOptions> = {
 type NotesCanvasProps = {
     noteId: string
     onBack: () => void
+    onTitleLocalUpdate?: (noteId: string, title: string) => void
 }
 
-export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
+export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: NotesCanvasProps) {
     const store = useMemo(() => createTLStore(), [])
     const [loading, setLoading] = useState(true)
     const [title, setTitle] = useState("Untitled")
     const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved")
     const readyRef = useRef(false)
 
-    // Precompute all font faces for preloading
     const allExtensionFontFaces = useMemo(() => {
         return Object.values(extensionFontFamilies)
             .flatMap((family) => Object.values(family))
@@ -452,13 +396,11 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
 
     const onMount = useCallback(
         (editor: Editor) => {
-            // Preload custom fonts so switching doesn’t flash
             editor.fonts.requestFonts(allExtensionFontFaces)
         },
         [allExtensionFontFaces]
     )
 
-    // Load note snapshot
     useEffect(() => {
         let mounted = true
 
@@ -504,7 +446,6 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
         }
     }, [noteId, store])
 
-    // Autosave snapshot
     useEffect(() => {
         const persist = throttle(async () => {
             if (!readyRef.current) return
@@ -516,7 +457,7 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
             } catch {
                 setSaveState("error")
             }
-        }, 800)
+        }, 8000)
 
         const unlisten = store.listen(() => persist())
 
@@ -526,7 +467,6 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
         }
     }, [noteId, store])
 
-    // Rename
     const saveTitle = useMemo(
         () =>
             throttle(async (nextTitle: string) => {
@@ -541,19 +481,21 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
 
     if (loading) {
         return (
-            <div className="fixed inset-0 z-[999] grid place-items-center bg-zinc-950 text-zinc-200">
+            <div className="fixed inset-0 z-[999] grid place-items-center bg-zinc-950">
                 <DefaultSpinner />
             </div>
         )
     }
 
-    // @ts-ignore
     return (
         <div className="fixed inset-0 z-[999] bg-zinc-950">
-            <div className="absolute left-4 top-4 z-50 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 backdrop-blur">
+            <div className="absolute top-12 border z-50 flex items-center bg-gray-200 gap-3 rounded-br-xl rounded-tr-xl px-3 py-2 ">
                 <button
-                    onClick={onBack}
-                    className="rounded-lg border border-zinc-800 px-3 py-1 text-sm text-zinc-200 hover:bg-zinc-900"
+                    onClick={() => {
+                        saveTitle.flush()
+                        onBack()
+                    }}
+                    className="rounded-md border border-zinc-800 px-3 py-1 text-sm hover:bg-zinc-300"
                 >
                     Back
                 </button>
@@ -561,11 +503,13 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
                 <div className="flex flex-col gap-0.5">
                     <input
                         value={title}
-                        onChange={(e) => {
-                            setTitle(e.target.value)
-                            saveTitle(e.target.value)
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const next = e.target.value
+                            setTitle(next)
+                            onTitleLocalUpdate?.(noteId, next)
+                            saveTitle(next)
                         }}
-                        className="w-[260px] rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-zinc-100 outline-none hover:bg-zinc-900/40 focus:bg-zinc-900/60"
+                        className="w-[260px] rounded-md bg-transparent px-2 py-1 text-sm font-semibold outline-none hover:bg-zinc-300/40 focus:bg-zinc-300/60"
                     />
                     <div className="px-2 text-xs text-zinc-400">
                         {saveState === "saved" && "Saved"}
@@ -579,6 +523,7 @@ export default function NotesCanvas({ noteId, onBack }: NotesCanvasProps) {
                 <Tldraw
                     store={store}
                     assetUrls={assetUrls}
+                    // @ts-ignore
                     assets={assets}
                     components={components}
                     textOptions={textOptions}

@@ -5,13 +5,13 @@ export default function TitleBar() {
 
     return (
         <div
-            className="h-10 flex items-center justify-end gap-1 px-2 backdrop-blur select-none"
+            className="h-10 flex justify-center rounded-md items-center w-40 gap-1 px-2 border-line select-none"
             data-tauri-drag-region
         >
             <button
                 type="button"
                 onClick={() => win.minimize()}
-                className="w-10 h-7 rounded-md border border-line text-slate-200 hover:bg-slate-900"
+                className="w-10 h-7 rounded-md border border-line text-slate-200 hover:bg-line"
                 aria-label="Minimize"
             >
                 —
@@ -20,7 +20,7 @@ export default function TitleBar() {
             <button
                 type="button"
                 onClick={() => win.toggleMaximize()}
-                className="w-10 h-7 rounded-md border border-line text-slate-200 hover:bg-slate-900"
+                className="w-10 h-7 rounded-md border border-line text-slate-200 hover:bg-line"
                 aria-label="Maximize"
             >
                 □
