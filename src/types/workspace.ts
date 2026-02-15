@@ -47,6 +47,8 @@ export interface Project {
 // NOTE
 export interface Note {
     id: string;
+    projectId?: string
+    projectName?: string
     courseId?: string;
     courseName?: string;
     title: string;

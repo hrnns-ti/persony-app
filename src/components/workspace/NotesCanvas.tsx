@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     DefaultRichTextToolbar,
     DefaultRichTextToolbarContent,
@@ -103,7 +103,7 @@ const assetUrls = {
 }
 
 const extensionFontFamilies: Record<string, Record<string, Record<string, TLFontFace>>> = {
-    Inter: {
+    "Inter": {
         normal: {
             normal: {
                 family: "Inter",
@@ -128,130 +128,6 @@ const extensionFontFamilies: Record<string, Record<string, Record<string, TLFont
             bold: {
                 family: "Inter",
                 src: { url: "/fonts/Inter-BoldItalic.woff2", format: "woff2" },
-                weight: "700",
-                style: "italic",
-            },
-        },
-    },
-
-    "Google Sans": {
-        normal: {
-            normal: {
-                family: "Google Sans",
-                src: { url: "/fonts/GoogleSans-Medium.woff2", format: "woff2" },
-                weight: "500",
-                style: "normal",
-            },
-            bold: {
-                family: "Google Sans",
-                src: { url: "/fonts/GoogleSans-Bold.woff2", format: "woff2" },
-                weight: "700",
-                style: "normal",
-            },
-        },
-        italic: {
-            normal: {
-                family: "Google Sans",
-                src: { url: "/fonts/GoogleSans-MediumItalic.woff2", format: "woff2" },
-                weight: "500",
-                style: "italic",
-            },
-            bold: {
-                family: "Google Sans",
-                src: { url: "/fonts/GoogleSans-BoldItalic.woff2", format: "woff2" },
-                weight: "700",
-                style: "italic",
-            },
-        },
-    },
-
-    "Google Sans Code": {
-        normal: {
-            normal: {
-                family: "Google Sans Code",
-                src: { url: "/fonts/GoogleSansCode-Regular.woff2", format: "woff2" },
-                weight: "400",
-                style: "normal",
-            },
-            bold: {
-                family: "Google Sans Code",
-                src: { url: "/fonts/GoogleSansCode-Regular.woff2", format: "woff2" },
-                weight: "700",
-                style: "normal",
-            },
-        },
-        italic: {
-            normal: {
-                family: "Google Sans Code",
-                src: { url: "/fonts/GoogleSansCode-Italic.woff2", format: "woff2" },
-                weight: "400",
-                style: "italic",
-            },
-            bold: {
-                family: "Google Sans Code",
-                src: { url: "/fonts/GoogleSansCode-Italic.woff2", format: "woff2" },
-                weight: "700",
-                style: "italic",
-            },
-        },
-    },
-
-    Consolas: {
-        normal: {
-            normal: {
-                family: "Consolas",
-                src: { url: "/fonts/Consolas.woff2", format: "woff2" },
-                weight: "400",
-                style: "normal",
-            },
-            bold: {
-                family: "Consolas",
-                src: { url: "/fonts/Consolas-Bold.woff2", format: "woff2" },
-                weight: "700",
-                style: "normal",
-            },
-        },
-        italic: {
-            normal: {
-                family: "Consolas",
-                src: { url: "/fonts/Consolas-Italic.woff2", format: "woff2" },
-                weight: "400",
-                style: "italic",
-            },
-            bold: {
-                family: "Consolas",
-                src: { url: "/fonts/Consolas-BoldItalic.woff2", format: "woff2" },
-                weight: "700",
-                style: "italic",
-            },
-        },
-    },
-
-    SusahKali: {
-        normal: {
-            normal: {
-                family: "SusahKali",
-                src: { url: "/fonts/SusahKali.woff2", format: "woff2" },
-                weight: "400",
-                style: "normal",
-            },
-            bold: {
-                family: "SusahKali",
-                src: { url: "/fonts/SusahKali.woff2", format: "woff2" },
-                weight: "700",
-                style: "normal",
-            },
-        },
-        italic: {
-            normal: {
-                family: "SusahKali",
-                src: { url: "/fonts/SusahKali.woff2", format: "woff2" },
-                weight: "400",
-                style: "italic",
-            },
-            bold: {
-                family: "SusahKali",
-                src: { url: "/fonts/SusahKali.woff2", format: "woff2" },
                 weight: "700",
                 style: "italic",
             },
@@ -378,10 +254,10 @@ const textOptions: Partial<TLTextOptions> = {
 type NotesCanvasProps = {
     noteId: string
     onBack: () => void
-    onTitleLocalUpdate?: (noteId: string, title: string) => void
+    onUpdateNote?: (id: string, patch: any) => Promise<any>
 }
 
-export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: NotesCanvasProps) {
+export default function NotesCanvas({ noteId, onBack, onUpdateNote }: NotesCanvasProps) {
     const store = useMemo(() => createTLStore(), [])
     const [loading, setLoading] = useState(true)
     const [title, setTitle] = useState("Untitled")
@@ -394,6 +270,14 @@ export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: Note
             .flatMap((style) => Object.values(style))
     }, [])
 
+    const saveNote = useCallback(
+        (patch: any) => {
+            if (onUpdateNote) return onUpdateNote(noteId, patch)
+            return noteService.update(noteId, patch)
+        },
+        [noteId, onUpdateNote]
+    )
+
     const onMount = useCallback(
         (editor: Editor) => {
             editor.fonts.requestFonts(allExtensionFontFaces)
@@ -401,6 +285,7 @@ export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: Note
         [allExtensionFontFaces]
     )
 
+    // Load note snapshot
     useEffect(() => {
         let mounted = true
 
@@ -446,37 +331,42 @@ export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: Note
         }
     }, [noteId, store])
 
+    const persistRef = useRef<null | ReturnType<typeof throttle>>(null)
+
     useEffect(() => {
         const persist = throttle(async () => {
             if (!readyRef.current) return
             try {
                 setSaveState("saving")
                 const snapshot = getSnapshot(store)
-                await noteService.update(noteId, { content: JSON.stringify(snapshot) })
+                await saveNote({ content: JSON.stringify(snapshot) })
                 setSaveState("saved")
             } catch {
                 setSaveState("error")
             }
-        }, 8000)
+        }, 1200)
 
+        persistRef.current = persist
         const unlisten = store.listen(() => persist())
 
         return () => {
             unlisten()
-            persist.cancel()
+            persist.flush()
+            persistRef.current = null
         }
-    }, [noteId, store])
+    }, [store, saveNote])
 
+    // Title save (throttled)
     const saveTitle = useMemo(
         () =>
             throttle(async (nextTitle: string) => {
                 try {
-                    await noteService.update(noteId, { title: nextTitle })
+                    await saveNote({ title: nextTitle })
                 } catch {
                     // ignore
                 }
-            }, 600),
-        [noteId]
+            }, 400),
+        [saveNote]
     )
 
     if (loading) {
@@ -491,8 +381,10 @@ export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: Note
         <div className="fixed inset-0 z-[999] bg-zinc-950">
             <div className="absolute top-12 border z-50 flex items-center bg-gray-200 gap-3 rounded-br-xl rounded-tr-xl px-3 py-2 ">
                 <button
+                    type="button"
                     onClick={() => {
                         saveTitle.flush()
+                        persistRef.current?.flush()
                         onBack()
                     }}
                     className="rounded-md border border-zinc-800 px-3 py-1 text-sm hover:bg-zinc-300"
@@ -503,10 +395,9 @@ export default function NotesCanvas({ noteId, onBack, onTitleLocalUpdate }: Note
                 <div className="flex flex-col gap-0.5">
                     <input
                         value={title}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        onChange={(e) => {
                             const next = e.target.value
                             setTitle(next)
-                            onTitleLocalUpdate?.(noteId, next)
                             saveTitle(next)
                         }}
                         className="w-[260px] rounded-md bg-transparent px-2 py-1 text-sm font-semibold outline-none hover:bg-zinc-300/40 focus:bg-zinc-300/60"
