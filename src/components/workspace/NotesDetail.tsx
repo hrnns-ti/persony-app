@@ -222,7 +222,7 @@ export default function NoteDetailModal({
                     </div>
 
                     {confirmDeleteOpen ? (
-                        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                        <div className="rounded-lg border border-red text-red p-3">
                             <div className="text-sm text-white">
                                 Delete <span className="font-semibold">"{note.title || "Untitled"}"</span>?
                             </div>
@@ -240,7 +240,7 @@ export default function NoteDetailModal({
 
                                 <button
                                     type="button"
-                                    className="px-3 py-1.5 rounded-md bg-red-600 text-xs text-white hover:bg-red-500 disabled:opacity-60"
+                                    className="px-3 py-1.5 rounded-md border border-line hover:bg-red text-xs text-white hover:bg-red-500 disabled:opacity-60"
                                     disabled={deleting}
                                     onClick={handleConfirmDelete}
                                 >
@@ -267,7 +267,7 @@ export default function NoteDetailModal({
                                 e.stopPropagation()
                                 setConfirmDeleteOpen(true)
                             }}
-                            className="px-3 py-1.5 rounded-md border border-red-500/40 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-60"
+                            className="px-3 py-1.5 rounded-md border border-line text-xs text-white hover:border-red hover:text-red disabled:opacity-60"
                             disabled={saving || deleting}
                         >
                             Delete

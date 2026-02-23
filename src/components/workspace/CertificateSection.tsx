@@ -297,7 +297,7 @@ export default function CertificatesSection() {
                         <button
                             type="button"
                             onClick={() => setConfirmDelete(null)}
-                            className="px-3 py-1.5 text-xs rounded-md border  border-slate-600 text-slate-300 hover:bg-slate-800"
+                            className="px-3 py-1.5 text-xs rounded-md border border-line text-slate-300 hover:bg-slate-800"
                         >
                             Cancel
                         </button>
@@ -305,7 +305,7 @@ export default function CertificatesSection() {
                         <button
                             type="button"
                             onClick={handleDeleteConfirmed}
-                            className="px-4 py-1.5 text-xs border border-line rounded-md bg-red hover:text-red text-slate-400 hover:border-red"
+                            className="px-4 py-1.5 text-xs border border-line rounded-md hover:border-red hover:text-red text-slate-300 hover:border-red"
                         >
                             Delete
                         </button>

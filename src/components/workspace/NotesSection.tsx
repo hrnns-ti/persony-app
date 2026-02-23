@@ -89,7 +89,7 @@ export default function NotesSection() {
 
                             <button
                                 type="button"
-                                className="px-3 py-1.5 rounded-md bg-red-600 text-xs text-white hover:bg-red-500 disabled:opacity-60"
+                                className="px-3 py-1.5 rounded-md border border-line hover:border-red text-xs text-white hover:text-red disabled:opacity-60"
                                 disabled={deleting}
                                 onClick={async () => {
                                     setDeleting(true)
@@ -144,7 +144,7 @@ export default function NotesSection() {
             />
 
             {/* Notes list */}
-            <div className="bg-main border border-line rounded-lg p-4 flex flex-col h-full">
+            <div className="bg-main border border-line rounded-lg hover:border-slate-700 transition-all p-4 savings-scroll flex flex-col h-full">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex flex-col">
                         <div className="text-sm font-semibold text-white">Notes</div>
@@ -154,7 +154,7 @@ export default function NotesSection() {
                     <button
                         onClick={handleCreate}
                         disabled={creating}
-                        className="px-3 py-1.5 rounded-md border border-line text-xs text-white hover:bg-white/5 disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-md border border-line hover:border-slate-700 transition-all text-xs text-white hover:bg-white/5 disabled:opacity-50"
                     >
                         + New
                     </button>
@@ -180,7 +180,7 @@ export default function NotesSection() {
                         filtered.map((n) => (
                             <div
                                 key={n.id}
-                                className="group rounded-lg border border-line bg-black/10 hover:bg-black/20 transition px-3 py-2 flex items-center justify-between gap-3"
+                                className="group rounded-md border border-line hover:border-slate-700 transition-all bg-black/10 hover:bg-black/20 transition px-3 py-2 flex items-center justify-between gap-3"
                             >
                                 <button
                                     type="button"
@@ -213,7 +213,7 @@ export default function NotesSection() {
 
                                     <button
                                         type="button"
-                                        className="px-2 py-1 rounded-md border border-red-500/40 text-[11px] text-red-300 hover:bg-red-500/10"
+                                        className="px-2 py-1 rounded-md border border-line hover:text-red text-[11px] text-slate-300 hover:border-red"
                                         onPointerDown={(e) => {
                                             e.preventDefault()
                                             e.stopPropagation()

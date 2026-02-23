@@ -2,6 +2,7 @@ import ProjectsSection from '../components/workspace/ProjectSection';
 import { CoursesSection } from "../components/workspace/CourseSection.tsx";
 import CertificatesSection from "../components/workspace/CertificateSection";
 import NotesSection from "../components/workspace/NotesSection.tsx";
+import AssignmentsSection from "../components/workspace/AssignmentSection.tsx";
 
 export default function WorkspacePage() {
     return (
@@ -24,8 +25,8 @@ export default function WorkspacePage() {
 
                     {/* Right column reserved (Notes / Assignments nanti) */}
                     <div className="bg-main  text-slate-500 text-xs grid grid-rows-[50%,50%] gap-4 h-full min-h-0">
-                        <div className="flex flex-col overflow-hidden border border-line rounded-md px-3 py-2 text-sm">
-                            Right sidebar (coming soon)
+                        <div className="flex flex-col overflow-hidden">
+                            <AssignmentsSection />
                         </div>
                         <div className="flex flex-col overflow-hidden">
                             <NotesSection />
