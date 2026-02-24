@@ -4,6 +4,7 @@ import HoverTitleBar from "./components/ui/HoverTitleBar";
 
 import FinancePage from "./pages/Finance";
 import WorkspacePage from "./pages/Workspace";
+import CalendarPage from "./pages/Calendar.tsx";
 
 function App() {
     const [activeTab, setActiveTab] = useState<AppTab>("finance");
@@ -17,7 +18,7 @@ function App() {
             content = <FinancePage />;
             break;
         case "calendar":
-            content = <div className="p-8 text-slate-300">Calendar coming soon...</div>;
+            content = <CalendarPage />;
             break;
         case "dashboard":
         default:
