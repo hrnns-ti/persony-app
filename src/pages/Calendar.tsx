@@ -64,12 +64,16 @@ function weekLabel(start: Date) {
         year: "numeric",
     });
 
-    // contoh: Mar 30 – Apr 5, 2026
     return `${startFmt} – ${endFmt}`;
 }
 
 function dayLabel(d: Date) {
-    return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return d.toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
 }
 
 export default function CalendarPage() {
@@ -99,7 +103,6 @@ export default function CalendarPage() {
     const [view, setView] = useState<CalendarView>("month");
     const [activeDate, setActiveDate] = useState(new Date());
 
-    // modal
     const [createOpen, setCreateOpen] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
 
@@ -112,7 +115,6 @@ export default function CalendarPage() {
         return events.find((e) => e.id === selectedEventId) ?? null;
     }, [events, selectedEventId]);
 
-    // ✅ range bergantung view
     const range = useMemo(() => {
         if (view === "month") {
             const start = startOfMonthGrid(activeDate, true);
@@ -138,13 +140,11 @@ export default function CalendarPage() {
             return { startISO: start.toISOString(), endISO: end.toISOString() };
         }
 
-        // agenda: 30 hari dari activeDate
         const start = startOfDay(activeDate);
         const end = addDays(start, 30);
         return { startISO: start.toISOString(), endISO: end.toISOString() };
     }, [activeDate, view]);
 
-    // ✅ label toolbar bergantung view
     const toolbarLabel = useMemo(() => {
         if (view === "month") return monthLabel(activeDate);
         if (view === "week") return weekLabel(startOfWeek(activeDate, true));
@@ -161,7 +161,6 @@ export default function CalendarPage() {
         setActiveDate(new Date());
     }
 
-    // ✅ FIX klik 2x: gunakan functional update + setDate(1) sebelum setMonth
     function prev() {
         setActiveDate((prevDate) => {
             const d = new Date(prevDate);
@@ -184,7 +183,6 @@ export default function CalendarPage() {
                 d.setDate(d.getDate() - 1);
                 return d;
             }
-            // agenda
             d.setDate(d.getDate() - 7);
             return d;
         });
@@ -212,7 +210,6 @@ export default function CalendarPage() {
                 d.setDate(d.getDate() + 1);
                 return d;
             }
-            // agenda
             d.setDate(d.getDate() + 7);
             return d;
         });
@@ -232,8 +229,8 @@ export default function CalendarPage() {
     const weekStart = useMemo(() => startOfWeek(activeDate, true), [activeDate]);
 
     return (
-        <main className="mt-3 flex-1 bg-main overflow-hidden flex flex-col">
-            <div className="flex-1 p-8 overflow-hidden">
+        <main className="mt-3 flex-1 min-h-0 bg-main overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 p-8 overflow-hidden">
                 <div className="grid grid-cols-[260px,1fr] gap-4 h-full min-h-0">
                     {/* Sidebar */}
                     <aside className="border border-line rounded-lg bg-main p-4 flex flex-col min-h-0">
@@ -262,10 +259,7 @@ export default function CalendarPage() {
                                         className="w-full flex items-center justify-between gap-2 border border-line rounded-md px-3 py-2 hover:border-slate-600"
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
-                      <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: c.color ?? "#3b82f6" }}
-                      />
+                                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color ?? "#3b82f6" }} />
                                             <span className="text-xs text-slate-200 truncate">{c.title}</span>
                                             {c.isPrimary && (
                                                 <span className="text-[10px] px-2 py-0.5 rounded-full border border-line text-slate-400">
@@ -274,17 +268,13 @@ export default function CalendarPage() {
                                             )}
                                         </div>
 
-                                        <span className="text-[11px] text-slate-400">
-                      {visibleSet.has(c.id) ? "On" : "Off"}
-                    </span>
+                                        <span className="text-[11px] text-slate-400">{visibleSet.has(c.id) ? "On" : "Off"}</span>
                                     </button>
                                 ))}
                         </div>
 
                         <div className="pt-3 border-t border-line mt-3">
-                            <p className="text-[11px] text-slate-500">
-                                MVP: Multi view (day/week/month/year/agenda). Recurring next.
-                            </p>
+                            <p className="text-[11px] text-slate-500">MVP: Multi view (day/week/month/year/agenda). Recurring next.</p>
                         </div>
                     </aside>
 
@@ -302,7 +292,7 @@ export default function CalendarPage() {
 
                         {error && <p className="text-xs text-red-400">{error}</p>}
 
-                        <div className="flex-1 min-h-0">
+                        <div className="flex-1 min-h-0 overflow-hidden">
                             {view === "month" && (
                                 <MonthView
                                     activeDate={activeDate}
@@ -315,45 +305,49 @@ export default function CalendarPage() {
                                 />
                             )}
 
-                            <WeekView
-                                weekStart={weekStart}
-                                instances={instances}
-                                startHour={0}
-                                endHour={24}
-                                onClickEvent={(ev) => {
-                                    setSelectedEventId(ev.eventId);
-                                    setDetailOpen(true);
-                                }}
-                                onCreateRange={(startISO, endISO) => {
-                                    setDefaultStartISO(startISO);
-                                    setDefaultEndISO(endISO);
-                                    setCreateOpen(true);
-                                }}
-                                onMoveEvent={async (eventId, startISO, endISO) => {
-                                    await updateEvent(eventId, { start: startISO, end: endISO } as any);
-                                    await loadInstancesForRange(range.startISO, range.endISO, visibleCalendarIds);
-                                }}
-                            />
+                            {view === "week" && (
+                                <WeekView
+                                    weekStart={weekStart}
+                                    instances={instances}
+                                    startHour={0}
+                                    endHour={24}
+                                    onClickEvent={(ev) => {
+                                        setSelectedEventId(ev.eventId);
+                                        setDetailOpen(true);
+                                    }}
+                                    onCreateRange={(startISO, endISO) => {
+                                        setDefaultStartISO(startISO);
+                                        setDefaultEndISO(endISO);
+                                        setCreateOpen(true);
+                                    }}
+                                    onMoveEvent={async (eventId, startISO, endISO) => {
+                                        await updateEvent(eventId, { start: startISO, end: endISO } as any);
+                                        await loadInstancesForRange(range.startISO, range.endISO, visibleCalendarIds);
+                                    }}
+                                />
+                            )}
 
-                            <DayView
-                                day={activeDate}
-                                instances={instances}
-                                startHour={0}
-                                endHour={24}
-                                onClickEvent={(ev) => {
-                                    setSelectedEventId(ev.eventId);
-                                    setDetailOpen(true);
-                                }}
-                                onCreateRange={(startISO, endISO) => {
-                                    setDefaultStartISO(startISO);
-                                    setDefaultEndISO(endISO);
-                                    setCreateOpen(true);
-                                }}
-                                onMoveEvent={async (eventId, startISO, endISO) => {
-                                    await updateEvent(eventId, { start: startISO, end: endISO } as any);
-                                    await loadInstancesForRange(range.startISO, range.endISO, visibleCalendarIds);
-                                }}
-                            />
+                            {view === "day" && (
+                                <DayView
+                                    day={activeDate}
+                                    instances={instances}
+                                    startHour={0}
+                                    endHour={24}
+                                    onClickEvent={(ev) => {
+                                        setSelectedEventId(ev.eventId);
+                                        setDetailOpen(true);
+                                    }}
+                                    onCreateRange={(startISO, endISO) => {
+                                        setDefaultStartISO(startISO);
+                                        setDefaultEndISO(endISO);
+                                        setCreateOpen(true);
+                                    }}
+                                    onMoveEvent={async (eventId, startISO, endISO) => {
+                                        await updateEvent(eventId, { start: startISO, end: endISO } as any);
+                                        await loadInstancesForRange(range.startISO, range.endISO, visibleCalendarIds);
+                                    }}
+                                />
+                            )}
 
                             {view === "agenda" && (
                                 <AgendaView
