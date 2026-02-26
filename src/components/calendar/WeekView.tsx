@@ -1,5 +1,42 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { EventInstance } from "../../types/calendar";
+import React, {useEffect, useMemo, useRef, useState} from "react";
+import type {EventInstance} from "../../types/calendar";
+
+const CAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+
+function zonedParts(date: Date, timeZone = CAL_TZ) {
+    try {
+        const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            hour12: false,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        }).formatToParts(date);
+
+        const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "0";
+
+        return {
+            year: Number(get("year")),
+            month: Number(get("month")),
+            day: Number(get("day")),
+            hour: Number(get("hour")),
+            minute: Number(get("minute")),
+            second: Number(get("second")),
+        };
+    } catch {
+        return {
+            year: date.getFullYear(),
+            month: date.getMonth() + 1,
+            day: date.getDate(),
+            hour: date.getHours(),
+            minute: date.getMinutes(),
+            second: date.getSeconds(),
+        };
+    }
+}
 
 function startOfDay(d: Date) {
     const x = new Date(d);
@@ -122,25 +159,27 @@ export default function WeekView(props: {
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
 
-    // ✅ current time ticking
-    const [now, setNow] = useState(() => new Date());
+    const DEBUG_NOW = false;
+
+    const [tick, setTick] = useState(0);
     useEffect(() => {
-        const id = window.setInterval(() => setNow(new Date()), 30_000);
+        const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
         return () => window.clearInterval(id);
     }, []);
 
-    const nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    const nowP = zonedParts(new Date());
+    const nowMinutes = nowP.hour * 60 + nowP.minute + nowP.second / 60;
     const nowTopPx = ((nowMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
 
     const todayIndex = useMemo(() => {
-        const t0 = startOfDay(now).getTime();
-        const w0 = startOfDay(weekStart).getTime();
-        return Math.floor((t0 - w0) / 86400000);
-    }, [now, weekStart]);
+        return days.findIndex((d) => {
+            const p = zonedParts(d);
+            return p.year === nowP.year && p.month === nowP.month && p.day === nowP.day;
+        });
+    }, [days, nowP.year, nowP.month, nowP.day]);
 
     const showNow = todayIndex >= 0 && todayIndex < 7 && nowMinutes >= startHour * 60 && nowMinutes <= endHour * 60;
 
-    // ✅ auto scroll once to current time
     const didAutoScroll = useRef(false);
     useEffect(() => {
         if (!showNow) {
@@ -151,12 +190,11 @@ export default function WeekView(props: {
         if (!el) return;
         if (didAutoScroll.current) return;
 
-        const target = clamp(nowTopPx - el.clientHeight * 0.35, 0, gridHeight - el.clientHeight);
-        el.scrollTop = target;
+        el.scrollTop = clamp(nowTopPx - el.clientHeight * 0.35, 0, gridHeight - el.clientHeight);
         didAutoScroll.current = true;
-    }, [showNow, nowTopPx, gridHeight]);
+    }, [showNow, nowTopPx, gridHeight, tick]);
 
-    // ✅ wheel lock: scroll di grid, bukan scroll page
+    // wheel lock
     useEffect(() => {
         const el = scrollRef.current;
         if (!el) return;
@@ -176,12 +214,14 @@ export default function WeekView(props: {
     const allDayByDay = useMemo(() => {
         const map = new Map<number, EventInstance[]>();
         for (let i = 0; i < 7; i++) map.set(i, []);
+
         for (const ev of instances) {
             if (!ev.allDay) continue;
             const d = new Date(ev.start);
             const idx = Math.floor((startOfDay(d).getTime() - startOfDay(weekStart).getTime()) / 86400000);
             if (idx >= 0 && idx < 7) map.get(idx)!.push(ev);
         }
+
         for (const [k, arr] of map.entries()) {
             arr.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
             map.set(k, arr);
@@ -251,6 +291,7 @@ export default function WeekView(props: {
     function topFromMinutes(min: number) {
         return ((min - startHour * 60) / 60) * HOUR_HEIGHT;
     }
+
     function heightFromMinutes(a: number, b: number) {
         return Math.max(18, ((b - a) / 60) * HOUR_HEIGHT);
     }
@@ -259,12 +300,9 @@ export default function WeekView(props: {
     const selectStartRef = useRef(0);
     const selectDayRef = useRef(0);
 
-    const [selection, setSelection] = useState<{ active: boolean; dayIndex: number; startMin: number; endMin: number }>({
-        active: false,
-        dayIndex: 0,
-        startMin: 0,
-        endMin: 0,
-    });
+    const [selection, setSelection] = useState<{ active: boolean; dayIndex: number; startMin: number; endMin: number }>(
+        { active: false, dayIndex: 0, startMin: 0, endMin: 0 }
+    );
 
     const dragRef = useRef<{
         ev: EventInstance;
@@ -325,9 +363,12 @@ export default function WeekView(props: {
                 const cur = minutesFromPointer(dayIndex, e);
                 const start = selectStartRef.current;
 
-                const a = Math.min(start, cur);
-                const b = Math.max(start, cur);
-                setSelection({ active: true, dayIndex, startMin: a, endMin: b });
+                setSelection({
+                    active: true,
+                    dayIndex,
+                    startMin: Math.min(start, cur),
+                    endMin: Math.max(start, cur),
+                });
                 return;
             }
 
@@ -346,12 +387,7 @@ export default function WeekView(props: {
                 dr.curStartMin = newStart;
                 dr.moved = dr.moved || dayIndex !== dr.originalDay || Math.abs(newStart - dr.originalStartMin) >= snapMinutes;
 
-                setDragPreview({
-                    active: true,
-                    dayIndex,
-                    startMin: newStart,
-                    endMin: newStart + dr.durationMin,
-                });
+                setDragPreview({ active: true, dayIndex, startMin: newStart, endMin: newStart + dr.durationMin });
             }
         };
 
@@ -377,8 +413,8 @@ export default function WeekView(props: {
                     endMin = clamp(endMin, startHour * 60, endHour * 60);
                     if (endMin <= startMin) endMin = clamp(startMin + defaultDurationMinutes, startHour * 60, endHour * 60);
 
-                    const day = days[prev.dayIndex];
-                    onCreateRange(isoFromLocalMinutes(day, startMin), isoFromLocalMinutes(day, endMin));
+                    const d = days[prev.dayIndex];
+                    onCreateRange(isoFromLocalMinutes(d, startMin), isoFromLocalMinutes(d, endMin));
                     return { active: false, dayIndex: 0, startMin: 0, endMin: 0 };
                 });
 
@@ -398,9 +434,9 @@ export default function WeekView(props: {
                     return;
                 }
 
-                const day = days[dr.curDay];
-                const startISO = isoFromLocalMinutes(day, dr.curStartMin);
-                const endISO = isoFromLocalMinutes(day, dr.curStartMin + dr.durationMin);
+                const d = days[dr.curDay];
+                const startISO = isoFromLocalMinutes(d, dr.curStartMin);
+                const endISO = isoFromLocalMinutes(d, dr.curStartMin + dr.durationMin);
                 onMoveEvent(dr.ev.eventId, startISO, endISO);
             }
         };
@@ -434,7 +470,7 @@ export default function WeekView(props: {
                                 key={ev.instanceId}
                                 data-event="1"
                                 onClick={() => onClickEvent(ev)}
-                                className="px-2 py-1 rounded-md text-[11px] border border-line hover:border-slate-600 truncate min-w-[120px]"
+                                className="px-2 py-1 rounded-md text-[11px] border border-line hover:border-slate-600 truncate min-w-[100px]"
                                 style={{ backgroundColor: ev.color ?? "#3b82f6" }}
                                 title={ev.title}
                             >
@@ -449,107 +485,109 @@ export default function WeekView(props: {
             </div>
 
             <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto savings-scroll">
-                <div className="relative">
-                    {/* current time indicator (across week grid) */}
-                    {showNow && (
-                        <div
-                            className="absolute left-[72px] right-0 pointer-events-none"
-                            style={{ top: nowTopPx, zIndex: 80 }}
-                        >
-                            <div className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
-                            <div className="h-[2px] w-full bg-red-500" />
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-[72px,repeat(7,1fr)]">
-                        <div className="border-r border-line">
-                            {HOURS.map((h) => (
-                                <div key={h} className="h-[56px] px-2 text-[11px] text-slate-500 flex items-start pt-2">
-                                    {pad(h)}:00
-                                </div>
-                            ))}
-                        </div>
-
-                        {days.map((d, dayIndex) => {
-                            const list = timedLayoutByDay.get(dayIndex) ?? [];
-
-                            return (
-                                <div
-                                    key={d.toISOString()}
-                                    // @ts-ignore
-                                    ref={(el) => (colRefs.current[dayIndex] = el)}
-                                    className="relative border-r border-line"
-                                    style={{ height: gridHeight }}
-                                    onMouseDown={(e) => beginSelect(dayIndex, e)}
-                                >
-                                    {HOURS.map((h) => (
-                                        <div
-                                            key={h}
-                                            className="absolute left-0 right-0 border-t border-line"
-                                            style={{ top: (h - startHour) * HOUR_HEIGHT }}
-                                        />
-                                    ))}
-
-                                    {selection.active && selection.dayIndex === dayIndex && (
-                                        <div
-                                            className="absolute rounded-md border border-blue-400/60 bg-blue-500/10"
-                                            style={{
-                                                left: 6,
-                                                right: 6,
-                                                top: ((selection.startMin - startHour * 60) / 60) * HOUR_HEIGHT,
-                                                height: Math.max(18, ((selection.endMin - selection.startMin) / 60) * HOUR_HEIGHT),
-                                            }}
-                                        />
-                                    )}
-
-                                    {dragPreview?.active && dragPreview.dayIndex === dayIndex && (
-                                        <div
-                                            className="absolute rounded-md border border-blue-400/60 bg-blue-500/15 pointer-events-none"
-                                            style={{
-                                                left: 6,
-                                                right: 6,
-                                                top: ((dragPreview.startMin - startHour * 60) / 60) * HOUR_HEIGHT,
-                                                height: Math.max(18, ((dragPreview.endMin - dragPreview.startMin) / 60) * HOUR_HEIGHT),
-                                                zIndex: 60,
-                                            }}
-                                        />
-                                    )}
-
-                                    {list.map((it) => {
-                                        const colW = 100 / it.cols;
-                                        const left = `calc(${it.col * colW}% + 4px)`;
-                                        const width = `calc(${colW}% - 8px)`;
-                                        const isDraggingThis = dragRef.current?.ev.instanceId === it.ev.instanceId;
-
-                                        return (
-                                            <button
-                                                key={it.ev.instanceId}
-                                                data-event="1"
-                                                className="absolute px-2 py-1 rounded-md text-[11px] text-left border border-transparent hover:border-slate-800/60 overflow-hidden"
-                                                style={{
-                                                    left,
-                                                    width,
-                                                    top: topFromMinutes(it.startMin),
-                                                    height: heightFromMinutes(it.startMin, it.endMin),
-                                                    backgroundColor: it.ev.color ?? "#3b82f6",
-                                                    opacity: isDraggingThis ? 0.35 : 1,
-                                                    zIndex: 20 + it.col,
-                                                }}
-                                                title={it.ev.title}
-                                                onMouseDown={(e) => beginDrag(it, dayIndex, e)}
-                                            >
-                                                <div className="font-semibold truncate">{it.ev.title}</div>
-                                                <div className="opacity-80 truncate">
-                                                    {new Date(it.ev.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                                                    {new Date(it.ev.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            );
-                        })}
+                <div className="grid grid-cols-[72px,repeat(7,1fr)]">
+                    <div className="border-r border-line">
+                        {HOURS.map((h) => (
+                            <div key={h} className="h-[56px] px-2 text-[11px] text-slate-500 flex items-start pt-2">
+                                {pad(h)}:00
+                            </div>
+                        ))}
                     </div>
+
+                    {days.map((d, dayIndex) => {
+                        const list = timedLayoutByDay.get(dayIndex) ?? [];
+
+                        return (
+                            <div
+                                key={d.toISOString()}
+                                ref={(el) => {
+                                    colRefs.current[dayIndex] = el;
+                                }}
+                                className="relative border-r border-line"
+                                style={{ height: gridHeight }}
+                                onMouseDown={(e) => beginSelect(dayIndex, e)}
+                            >
+                                {DEBUG_NOW && dayIndex === 0 && (
+                                    <div className="absolute left-2 top-2 z-[9999] text-[10px] text-red-400">
+                                        todayIndex={todayIndex} showNow={String(showNow)} now={nowP.hour}:{String(nowP.minute).padStart(2, "0")}
+                                    </div>
+                                )}
+
+                                {/* NOW line hanya di kolom hari ini */}
+                                {showNow && dayIndex === todayIndex && (
+                                    <div className="absolute left-0 right-0 pointer-events-none" style={{ top: nowTopPx, zIndex: 40 }}>
+                                        <div className="absolute -left-2 -top-1.5 h-3 w-3 rounded-full" style={{ backgroundColor: "#ef4444" }} />
+                                        <div className="h-[2px] w-full" style={{ backgroundColor: "#ef4444" }} />
+                                    </div>
+                                )}
+
+                                {HOURS.map((h) => (
+                                    <div
+                                        key={h}
+                                        className="absolute left-0 right-0 border-t border-line"
+                                        style={{ top: (h - startHour) * HOUR_HEIGHT }}
+                                    />
+                                ))}
+
+                                {selection.active && selection.dayIndex === dayIndex && (
+                                    <div
+                                        className="absolute rounded-md border border-blue-400/60 bg-blue-500/10"
+                                        style={{
+                                            left: 6,
+                                            right: 6,
+                                            top: ((selection.startMin - startHour * 60) / 60) * HOUR_HEIGHT,
+                                            height: Math.max(18, ((selection.endMin - selection.startMin) / 60) * HOUR_HEIGHT),
+                                        }}
+                                    />
+                                )}
+
+                                {dragPreview?.active && dragPreview.dayIndex === dayIndex && (
+                                    <div
+                                        className="absolute rounded-md border border-blue-400/60 bg-blue-500/15 pointer-events-none"
+                                        style={{
+                                            left: 6,
+                                            right: 6,
+                                            top: ((dragPreview.startMin - startHour * 60) / 60) * HOUR_HEIGHT,
+                                            height: Math.max(18, ((dragPreview.endMin - dragPreview.startMin) / 60) * HOUR_HEIGHT),
+                                            zIndex: 60,
+                                        }}
+                                    />
+                                )}
+
+                                {list.map((it) => {
+                                    const colW = 100 / it.cols;
+                                    const left = `calc(${it.col * colW}% + 4px)`;
+                                    const width = `calc(${colW}% - 8px)`;
+                                    const isDraggingThis = dragRef.current?.ev.instanceId === it.ev.instanceId;
+
+                                    return (
+                                        <button
+                                            key={it.ev.instanceId}
+                                            data-event="1"
+                                            className="absolute px-2 py-1 rounded-md text-[11px] text-left border border-transparent hover:border-slate-800/60 overflow-hidden"
+                                            style={{
+                                                left,
+                                                width,
+                                                top: topFromMinutes(it.startMin),
+                                                height: heightFromMinutes(it.startMin, it.endMin),
+                                                backgroundColor: it.ev.color ?? "#3b82f6",
+                                                opacity: isDraggingThis ? 0.35 : 1,
+                                                zIndex: 20 + it.col,
+                                            }}
+                                            title={it.ev.title}
+                                            onMouseDown={(e) => beginDrag(it, dayIndex, e)}
+                                        >
+                                            <div className="font-semibold truncate">{it.ev.title}</div>
+                                            <div className="opacity-80 truncate">
+                                                {new Date(it.ev.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
+                                                {new Date(it.ev.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>
