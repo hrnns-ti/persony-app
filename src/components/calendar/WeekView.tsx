@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import type {EventInstance} from "../../types/calendar";
 
+// timezone otomatis (fallback Asia/Jakarta)
 const CAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
 
 function zonedParts(date: Date, timeZone = CAL_TZ) {
@@ -65,20 +66,56 @@ function isoFromLocalMinutes(day: Date, minutes: number) {
     return d.toISOString();
 }
 
-type LayoutItem = {
+function fmtTime(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+type StackItem = {
     ev: EventInstance;
     startMin: number;
     endMin: number;
-    col: number;
-    cols: number;
+    stackIndex: number;
+    stackCount: number;
 };
 
-function buildLayout(items: Array<{ ev: EventInstance; startMin: number; endMin: number }>): LayoutItem[] {
-    const sorted = [...items].sort((a, b) => a.startMin - b.startMin);
+// overlap -> stack overlay (bukan split kolom)
+function buildStackLayout(items: Array<{ ev: EventInstance; startMin: number; endMin: number }>): StackItem[] {
+    const sorted = [...items].sort((a, b) => {
+        if (a.startMin !== b.startMin) return a.startMin - b.startMin;
+        const da = a.endMin - a.startMin;
+        const db = b.endMin - b.startMin;
+        return db - da; // longer first
+    });
 
-    const clusters: typeof sorted[] = [];
+    const result: StackItem[] = [];
+
     let cluster: typeof sorted = [];
     let clusterEnd = -Infinity;
+
+    const flush = () => {
+        if (!cluster.length) return;
+
+        const ordered = [...cluster].sort((a, b) => {
+            if (a.startMin !== b.startMin) return a.startMin - b.startMin;
+            const da = a.endMin - a.startMin;
+            const db = b.endMin - b.startMin;
+            return db - da;
+        });
+
+        ordered.forEach((it, idx) => {
+            result.push({
+                ev: it.ev,
+                startMin: it.startMin,
+                endMin: it.endMin,
+                stackIndex: idx,
+                stackCount: ordered.length,
+            });
+        });
+
+        cluster = [];
+        clusterEnd = -Infinity;
+    };
 
     for (const it of sorted) {
         if (!cluster.length) {
@@ -90,37 +127,12 @@ function buildLayout(items: Array<{ ev: EventInstance; startMin: number; endMin:
             cluster.push(it);
             clusterEnd = Math.max(clusterEnd, it.endMin);
         } else {
-            clusters.push(cluster);
+            flush();
             cluster = [it];
             clusterEnd = it.endMin;
         }
     }
-    if (cluster.length) clusters.push(cluster);
-
-    const result: LayoutItem[] = [];
-    for (const c of clusters) {
-        const colEnd: number[] = [];
-        const assigned: Array<{ it: (typeof c)[number]; col: number }> = [];
-
-        for (const it of c) {
-            let col = 0;
-            while (col < colEnd.length && it.startMin < colEnd[col]) col++;
-            if (col === colEnd.length) colEnd.push(it.endMin);
-            else colEnd[col] = it.endMin;
-            assigned.push({ it, col });
-        }
-
-        const cols = colEnd.length || 1;
-        for (const a of assigned) {
-            result.push({
-                ev: a.it.ev,
-                startMin: a.it.startMin,
-                endMin: a.it.endMin,
-                col: a.col,
-                cols,
-            });
-        }
-    }
+    flush();
 
     return result;
 }
@@ -156,11 +168,23 @@ export default function WeekView(props: {
     const gridHeight = hourCount * HOUR_HEIGHT;
 
     const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
-
     const scrollRef = useRef<HTMLDivElement | null>(null);
+    const colRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-    const DEBUG_NOW = false;
+    // ===== dedupe (hindari "double event" kalau data dobel) =====
+    const uniqInstances = useMemo(() => {
+        const seen = new Set<string>();
+        const out: EventInstance[] = [];
+        for (const it of instances) {
+            const k = (it as any).instanceId ?? `${it.eventId}|${it.start}|${it.end}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            out.push(it);
+        }
+        return out;
+    }, [instances]);
 
+    // ===== NOW INDICATOR (timezone-safe) =====
     const [tick, setTick] = useState(0);
     useEffect(() => {
         const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
@@ -180,6 +204,7 @@ export default function WeekView(props: {
 
     const showNow = todayIndex >= 0 && todayIndex < 7 && nowMinutes >= startHour * 60 && nowMinutes <= endHour * 60;
 
+    // auto-scroll sekali ke posisi now (kalau today ada dalam minggu ini)
     const didAutoScroll = useRef(false);
     useEffect(() => {
         if (!showNow) {
@@ -209,13 +234,12 @@ export default function WeekView(props: {
         return () => el.removeEventListener("wheel", onWheel as any);
     }, []);
 
-    const colRefs = useRef<(HTMLDivElement | null)[]>([]);
-
+    // ===== data all-day =====
     const allDayByDay = useMemo(() => {
         const map = new Map<number, EventInstance[]>();
         for (let i = 0; i < 7; i++) map.set(i, []);
 
-        for (const ev of instances) {
+        for (const ev of uniqInstances) {
             if (!ev.allDay) continue;
             const d = new Date(ev.start);
             const idx = Math.floor((startOfDay(d).getTime() - startOfDay(weekStart).getTime()) / 86400000);
@@ -227,20 +251,21 @@ export default function WeekView(props: {
             map.set(k, arr);
         }
         return map;
-    }, [instances, weekStart]);
+    }, [uniqInstances, weekStart]);
 
-    const timedLayoutByDay = useMemo(() => {
+    // ===== timed layout per day (stack) =====
+    const stackedLayoutByDay = useMemo(() => {
         const baseWeek = startOfDay(weekStart).getTime();
         const minBound = startHour * 60;
         const maxBound = endHour * 60;
 
-        const map = new Map<number, LayoutItem[]>();
+        const map = new Map<number, StackItem[]>();
         for (let i = 0; i < 7; i++) map.set(i, []);
 
         for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
             const dayBase = baseWeek + dayIndex * 86400000;
 
-            const raw = instances
+            const raw = uniqInstances
                 .filter((x) => !x.allDay)
                 .filter((x) => {
                     const t = new Date(x.start).getTime();
@@ -256,11 +281,11 @@ export default function WeekView(props: {
                 })
                 .filter((x) => x.endMin > x.startMin);
 
-            map.set(dayIndex, buildLayout(raw));
+            map.set(dayIndex, buildStackLayout(raw));
         }
 
         return map;
-    }, [instances, weekStart, startHour, endHour]);
+    }, [uniqInstances, weekStart, startHour, endHour]);
 
     function dayHeaderLabel(d: Date) {
         return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
@@ -291,18 +316,21 @@ export default function WeekView(props: {
     function topFromMinutes(min: number) {
         return ((min - startHour * 60) / 60) * HOUR_HEIGHT;
     }
-
     function heightFromMinutes(a: number, b: number) {
         return Math.max(18, ((b - a) / 60) * HOUR_HEIGHT);
     }
 
+    // ===== selection(create) + drag(move) =====
     const modeRef = useRef<"none" | "select" | "drag">("none");
     const selectStartRef = useRef(0);
     const selectDayRef = useRef(0);
 
-    const [selection, setSelection] = useState<{ active: boolean; dayIndex: number; startMin: number; endMin: number }>(
-        { active: false, dayIndex: 0, startMin: 0, endMin: 0 }
-    );
+    const [selection, setSelection] = useState<{ active: boolean; dayIndex: number; startMin: number; endMin: number }>({
+        active: false,
+        dayIndex: 0,
+        startMin: 0,
+        endMin: 0,
+    });
 
     const dragRef = useRef<{
         ev: EventInstance;
@@ -330,27 +358,27 @@ export default function WeekView(props: {
         setSelection({ active: true, dayIndex, startMin: m, endMin: m + snapMinutes });
     }
 
-    function beginDrag(item: LayoutItem, dayIndex: number, e: React.MouseEvent) {
+    function beginDrag(it: StackItem, dayIndex: number, e: React.MouseEvent) {
         e.preventDefault();
         e.stopPropagation();
         modeRef.current = "drag";
 
         const pointerMin = minutesFromPointer(dayIndex, e);
-        const pointerOffsetMin = pointerMin - item.startMin;
-        const durationMin = item.endMin - item.startMin;
+        const pointerOffsetMin = pointerMin - it.startMin;
+        const durationMin = it.endMin - it.startMin;
 
         dragRef.current = {
-            ev: item.ev,
+            ev: it.ev,
             durationMin,
             pointerOffsetMin,
             originalDay: dayIndex,
-            originalStartMin: item.startMin,
+            originalStartMin: it.startMin,
             moved: false,
             curDay: dayIndex,
-            curStartMin: item.startMin,
+            curStartMin: it.startMin,
         };
 
-        setDragPreview({ active: true, dayIndex, startMin: item.startMin, endMin: item.endMin });
+        setDragPreview({ active: true, dayIndex, startMin: it.startMin, endMin: it.endMin });
     }
 
     useEffect(() => {
@@ -363,12 +391,9 @@ export default function WeekView(props: {
                 const cur = minutesFromPointer(dayIndex, e);
                 const start = selectStartRef.current;
 
-                setSelection({
-                    active: true,
-                    dayIndex,
-                    startMin: Math.min(start, cur),
-                    endMin: Math.max(start, cur),
-                });
+                const a = Math.min(start, cur);
+                const b = Math.max(start, cur);
+                setSelection({ active: true, dayIndex, startMin: a, endMin: b });
                 return;
             }
 
@@ -387,7 +412,12 @@ export default function WeekView(props: {
                 dr.curStartMin = newStart;
                 dr.moved = dr.moved || dayIndex !== dr.originalDay || Math.abs(newStart - dr.originalStartMin) >= snapMinutes;
 
-                setDragPreview({ active: true, dayIndex, startMin: newStart, endMin: newStart + dr.durationMin });
+                setDragPreview({
+                    active: true,
+                    dayIndex,
+                    startMin: newStart,
+                    endMin: newStart + dr.durationMin,
+                });
             }
         };
 
@@ -452,6 +482,7 @@ export default function WeekView(props: {
 
     return (
         <div className="border border-line rounded-lg overflow-hidden bg-main flex flex-col min-h-0 h-full">
+            {/* Header row */}
             <div className="grid grid-cols-[72px,repeat(7,1fr)] border-b border-line">
                 <div className="px-2 py-2 text-[11px] text-slate-500">GMT+7</div>
                 {days.map((d) => (
@@ -461,22 +492,27 @@ export default function WeekView(props: {
                 ))}
             </div>
 
+            {/* All-day row */}
             <div className="grid grid-cols-[72px,repeat(7,1fr)] border-b border-line">
                 <div className="px-2 py-2 text-[11px] text-slate-500">All-day</div>
                 {days.map((d, idx) => (
-                    <div key={d.toISOString()} className="px-2 py-2 flex gap-2 overflow-x-auto savings-scroll">
-                        {(allDayByDay.get(idx) ?? []).slice(0, 3).map((ev) => (
-                            <button
-                                key={ev.instanceId}
-                                data-event="1"
-                                onClick={() => onClickEvent(ev)}
-                                className="px-2 py-1 rounded-md text-[11px] border border-line hover:border-slate-600 truncate min-w-[100px]"
-                                style={{ backgroundColor: ev.color ?? "#3b82f6" }}
-                                title={ev.title}
-                            >
-                                {ev.title}
-                            </button>
-                        ))}
+                    <div key={d.toISOString()} className="px-2 py-2 flex gap-2 overflow-x-auto hidden-scroll">
+                        {(allDayByDay.get(idx) ?? []).slice(0, 3).map((ev) => {
+                            const tooltip = [ev.title, ev.location, ev.description].filter(Boolean).join("\n");
+                            return (
+                                <button
+                                    key={(ev as any).instanceId ?? `${ev.eventId}|${ev.start}|${ev.end}`}
+                                    data-event="1"
+                                    onClick={() => onClickEvent(ev)}
+                                    className="px-2 py-1 rounded-md text-[11px] border border-line hover:border-slate-600 truncate min-w-[140px]"
+                                    style={{ backgroundColor: ev.color ?? "#3b82f6" }}
+                                    title={tooltip}
+                                >
+                                    <div className="font-semibold truncate">{ev.title}</div>
+                                    {ev.location && <div className="opacity-90 text-[10px] truncate">{ev.location}</div>}
+                                </button>
+                            );
+                        })}
                         {(allDayByDay.get(idx)?.length ?? 0) > 3 && (
                             <span className="text-[11px] text-slate-500">+{(allDayByDay.get(idx)?.length ?? 0) - 3}</span>
                         )}
@@ -484,8 +520,10 @@ export default function WeekView(props: {
                 ))}
             </div>
 
+            {/* Scroll */}
             <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto savings-scroll">
                 <div className="grid grid-cols-[72px,repeat(7,1fr)]">
+                    {/* Time column */}
                     <div className="border-r border-line">
                         {HOURS.map((h) => (
                             <div key={h} className="h-[56px] px-2 text-[11px] text-slate-500 flex items-start pt-2">
@@ -494,8 +532,9 @@ export default function WeekView(props: {
                         ))}
                     </div>
 
+                    {/* 7 day columns */}
                     {days.map((d, dayIndex) => {
-                        const list = timedLayoutByDay.get(dayIndex) ?? [];
+                        const list = stackedLayoutByDay.get(dayIndex) ?? [];
 
                         return (
                             <div
@@ -507,13 +546,6 @@ export default function WeekView(props: {
                                 style={{ height: gridHeight }}
                                 onMouseDown={(e) => beginSelect(dayIndex, e)}
                             >
-                                {DEBUG_NOW && dayIndex === 0 && (
-                                    <div className="absolute left-2 top-2 z-[9999] text-[10px] text-red-400">
-                                        todayIndex={todayIndex} showNow={String(showNow)} now={nowP.hour}:{String(nowP.minute).padStart(2, "0")}
-                                    </div>
-                                )}
-
-                                {/* NOW line hanya di kolom hari ini */}
                                 {showNow && dayIndex === todayIndex && (
                                     <div className="absolute left-0 right-0 pointer-events-none" style={{ top: nowTopPx, zIndex: 40 }}>
                                         <div className="absolute -left-2 -top-1.5 h-3 w-3 rounded-full" style={{ backgroundColor: "#ef4444" }} />
@@ -521,6 +553,7 @@ export default function WeekView(props: {
                                     </div>
                                 )}
 
+                                {/* hour lines */}
                                 {HOURS.map((h) => (
                                     <div
                                         key={h}
@@ -529,6 +562,7 @@ export default function WeekView(props: {
                                     />
                                 ))}
 
+                                {/* selection overlay */}
                                 {selection.active && selection.dayIndex === dayIndex && (
                                     <div
                                         className="absolute rounded-md border border-blue-400/60 bg-blue-500/10"
@@ -537,10 +571,12 @@ export default function WeekView(props: {
                                             right: 6,
                                             top: ((selection.startMin - startHour * 60) / 60) * HOUR_HEIGHT,
                                             height: Math.max(18, ((selection.endMin - selection.startMin) / 60) * HOUR_HEIGHT),
+                                            zIndex: 35,
                                         }}
                                     />
                                 )}
 
+                                {/* drag preview */}
                                 {dragPreview?.active && dragPreview.dayIndex === dayIndex && (
                                     <div
                                         className="absolute rounded-md border border-blue-400/60 bg-blue-500/15 pointer-events-none"
@@ -554,34 +590,50 @@ export default function WeekView(props: {
                                     />
                                 )}
 
+                                {/* events (stack overlay) */}
                                 {list.map((it) => {
-                                    const colW = 100 / it.cols;
-                                    const left = `calc(${it.col * colW}% + 4px)`;
-                                    const width = `calc(${colW}% - 8px)`;
-                                    const isDraggingThis = dragRef.current?.ev.instanceId === it.ev.instanceId;
+                                    const offset = Math.min(it.stackIndex * 10, 24);
+                                    const leftPx = 6 + offset;
+                                    const width = `calc(100% - ${leftPx + 6}px)`;
+
+                                    const isDraggingThis = dragRef.current?.ev.instanceId === (it.ev as any).instanceId;
+
+                                    const timeText = `${fmtTime(it.ev.start)} – ${fmtTime(it.ev.end)}`;
+                                    const tooltip = [it.ev.title, timeText, it.ev.location, it.ev.description].filter(Boolean).join("\n");
 
                                     return (
                                         <button
-                                            key={it.ev.instanceId}
+                                            key={(it.ev as any).instanceId ?? `${it.ev.eventId}|${it.ev.start}|${it.ev.end}`}
                                             data-event="1"
-                                            className="absolute px-2 py-1 rounded-md text-[11px] text-left border border-transparent hover:border-slate-800/60 overflow-hidden"
+                                            className="absolute px-2 py-1 rounded-md text-left border border-transparent hover:border-slate-800/60 overflow-hidden"
                                             style={{
-                                                left,
+                                                left: `${leftPx}px`,
                                                 width,
                                                 top: topFromMinutes(it.startMin),
                                                 height: heightFromMinutes(it.startMin, it.endMin),
                                                 backgroundColor: it.ev.color ?? "#3b82f6",
                                                 opacity: isDraggingThis ? 0.35 : 1,
-                                                zIndex: 20 + it.col,
+                                                zIndex: 20 + it.stackIndex,
                                             }}
-                                            title={it.ev.title}
+                                            title={tooltip}
                                             onMouseDown={(e) => beginDrag(it, dayIndex, e)}
                                         >
-                                            <div className="font-semibold truncate">{it.ev.title}</div>
-                                            <div className="opacity-80 truncate">
-                                                {new Date(it.ev.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                                                {new Date(it.ev.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                            </div>
+                                            {it.stackCount > 1 && it.stackIndex === it.stackCount - 1 && (
+                                                <div className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/30">
+                                                    +{it.stackCount - 1}
+                                                </div>
+                                            )}
+
+                                            <div className="text-[11px] font-semibold truncate">{it.ev.title}</div>
+                                            <div className="text-[10px] opacity-90 truncate">{timeText}</div>
+
+                                            {it.ev.location && <div className="text-[10px] opacity-85 truncate">{it.ev.location}</div>}
+
+                                            {it.ev.description && (
+                                                <div className="text-[10px] opacity-75 leading-tight max-h-[26px] overflow-hidden">
+                                                    {it.ev.description}
+                                                </div>
+                                            )}
                                         </button>
                                     );
                                 })}

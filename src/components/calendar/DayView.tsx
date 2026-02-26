@@ -27,7 +27,6 @@ function zonedParts(date: Date, timeZone = CAL_TZ) {
             second: Number(get("second")),
         };
     } catch {
-        // fallback (kalau Intl timeZone tidak support)
         return {
             year: date.getFullYear(),
             month: date.getMonth() + 1,
@@ -60,20 +59,55 @@ function isoFromLocalMinutes(day: Date, minutes: number) {
     return d.toISOString();
 }
 
-type LayoutItem = {
+function fmtTime(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+type StackItem = {
     ev: EventInstance;
     startMin: number;
     endMin: number;
-    col: number;
-    cols: number;
+    stackIndex: number;
+    stackCount: number;
 };
 
-function buildLayout(items: Array<{ ev: EventInstance; startMin: number; endMin: number }>): LayoutItem[] {
-    const sorted = [...items].sort((a, b) => a.startMin - b.startMin);
+function buildStackLayout(items: Array<{ ev: EventInstance; startMin: number; endMin: number }>): StackItem[] {
+    const sorted = [...items].sort((a, b) => {
+        if (a.startMin !== b.startMin) return a.startMin - b.startMin;
+        const da = a.endMin - a.startMin;
+        const db = b.endMin - b.startMin;
+        return db - da; // yang durasi lebih panjang dulu
+    });
 
-    const clusters: typeof sorted[] = [];
+    const result: StackItem[] = [];
+
     let cluster: typeof sorted = [];
     let clusterEnd = -Infinity;
+
+    const flush = () => {
+        if (!cluster.length) return;
+
+        const ordered = [...cluster].sort((a, b) => {
+            if (a.startMin !== b.startMin) return a.startMin - b.startMin;
+            const da = a.endMin - a.startMin;
+            const db = b.endMin - b.startMin;
+            return db - da;
+        });
+
+        ordered.forEach((it, idx) => {
+            result.push({
+                ev: it.ev,
+                startMin: it.startMin,
+                endMin: it.endMin,
+                stackIndex: idx,
+                stackCount: ordered.length,
+            });
+        });
+
+        cluster = [];
+        clusterEnd = -Infinity;
+    };
 
     for (const it of sorted) {
         if (!cluster.length) {
@@ -81,41 +115,17 @@ function buildLayout(items: Array<{ ev: EventInstance; startMin: number; endMin:
             clusterEnd = it.endMin;
             continue;
         }
+
         if (it.startMin < clusterEnd) {
             cluster.push(it);
             clusterEnd = Math.max(clusterEnd, it.endMin);
         } else {
-            clusters.push(cluster);
+            flush();
             cluster = [it];
             clusterEnd = it.endMin;
         }
     }
-    if (cluster.length) clusters.push(cluster);
-
-    const result: LayoutItem[] = [];
-    for (const c of clusters) {
-        const colEnd: number[] = [];
-        const assigned: Array<{ it: (typeof c)[number]; col: number }> = [];
-
-        for (const it of c) {
-            let col = 0;
-            while (col < colEnd.length && it.startMin < colEnd[col]) col++;
-            if (col === colEnd.length) colEnd.push(it.endMin);
-            else colEnd[col] = it.endMin;
-            assigned.push({ it, col });
-        }
-
-        const cols = colEnd.length || 1;
-        for (const a of assigned) {
-            result.push({
-                ev: a.it.ev,
-                startMin: a.it.startMin,
-                endMin: a.it.endMin,
-                col: a.col,
-                cols,
-            });
-        }
-    }
+    flush();
 
     return result;
 }
@@ -151,9 +161,19 @@ export default function DayView(props: {
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const gridRef = useRef<HTMLDivElement | null>(null);
 
-    // DEBUG
-    const DEBUG_NOW = false;
+    const uniqInstances = useMemo(() => {
+        const seen = new Set<string>();
+        const out: EventInstance[] = [];
+        for (const it of instances) {
+            const k = (it as any).instanceId ?? `${it.eventId}|${it.start}|${it.end}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            out.push(it);
+        }
+        return out;
+    }, [instances]);
 
+    // ===== NOW INDICATOR =====
     const [tick, setTick] = useState(0);
     useEffect(() => {
         const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
@@ -182,7 +202,6 @@ export default function DayView(props: {
         didAutoScroll.current = true;
     }, [showNow, nowTopPx, gridHeight, tick]);
 
-    // wheel lock
     useEffect(() => {
         const el = scrollRef.current;
         if (!el) return;
@@ -198,17 +217,17 @@ export default function DayView(props: {
     }, []);
 
     const allDayEvents = useMemo(() => {
-        return instances
+        return uniqInstances
             .filter((x) => x.allDay)
             .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-    }, [instances]);
+    }, [uniqInstances]);
 
     const timedRaw = useMemo(() => {
         const base = startOfDay(day).getTime();
         const minBound = startHour * 60;
         const maxBound = endHour * 60;
 
-        return instances
+        return uniqInstances
             .filter((x) => !x.allDay)
             .map((ev) => {
                 const s = Math.floor((new Date(ev.start).getTime() - base) / 60000);
@@ -218,9 +237,9 @@ export default function DayView(props: {
                 return { ev, startMin, endMin };
             })
             .filter((x) => x.endMin > x.startMin);
-    }, [instances, day, startHour, endHour]);
+    }, [uniqInstances, day, startHour, endHour]);
 
-    const layout = useMemo(() => buildLayout(timedRaw), [timedRaw]);
+    const layout = useMemo(() => buildStackLayout(timedRaw), [timedRaw]);
 
     function minutesFromPointer(e: MouseEvent | React.MouseEvent) {
         const el = gridRef.current;
@@ -274,25 +293,25 @@ export default function DayView(props: {
         setSelection({ active: true, startMin: m, endMin: m + snapMinutes });
     }
 
-    function beginDrag(item: LayoutItem, e: React.MouseEvent) {
+    function beginDrag(it: StackItem, e: React.MouseEvent) {
         e.preventDefault();
         e.stopPropagation();
         modeRef.current = "drag";
 
         const pointerMin = minutesFromPointer(e);
-        const pointerOffsetMin = pointerMin - item.startMin;
-        const durationMin = item.endMin - item.startMin;
+        const pointerOffsetMin = pointerMin - it.startMin;
+        const durationMin = it.endMin - it.startMin;
 
         dragRef.current = {
-            ev: item.ev,
-            originalStartMin: item.startMin,
+            ev: it.ev,
+            originalStartMin: it.startMin,
             durationMin,
             pointerOffsetMin,
             moved: false,
-            curStartMin: item.startMin,
+            curStartMin: it.startMin,
         };
 
-        setDragPreview({ active: true, startMin: item.startMin, endMin: item.endMin });
+        setDragPreview({ active: true, startMin: it.startMin, endMin: it.endMin });
     }
 
     useEffect(() => {
@@ -390,18 +409,22 @@ export default function DayView(props: {
                     {allDayEvents.length === 0 ? (
                         <span className="text-[11px] text-slate-600">-</span>
                     ) : (
-                        allDayEvents.map((ev) => (
-                            <button
-                                key={ev.instanceId}
-                                data-event="1"
-                                onClick={() => onClickEvent(ev)}
-                                className="px-2 py-1 rounded-md text-[11px] border border-line hover:border-slate-600 truncate min-w-[140px]"
-                                style={{ backgroundColor: ev.color ?? "#3b82f6" }}
-                                title={ev.title}
-                            >
-                                {ev.title}
-                            </button>
-                        ))
+                        allDayEvents.map((ev) => {
+                            const tooltip = [ev.title, ev.location, ev.description].filter(Boolean).join("\n");
+                            return (
+                                <button
+                                    key={ev.instanceId}
+                                    data-event="1"
+                                    onClick={() => onClickEvent(ev)}
+                                    className="px-2 py-1 rounded-md text-[11px] border border-line hover:border-slate-600 truncate min-w-[160px]"
+                                    style={{ backgroundColor: ev.color ?? "#3b82f6" }}
+                                    title={tooltip}
+                                >
+                                    <div className="font-semibold truncate">{ev.title}</div>
+                                    {ev.location && <div className="opacity-90 text-[10px] truncate">{ev.location}</div>}
+                                </button>
+                            );
+                        })
                     )}
                 </div>
             </div>
@@ -417,12 +440,6 @@ export default function DayView(props: {
                     </div>
 
                     <div ref={gridRef} className="relative" style={{ height: gridHeight }} onMouseDown={beginSelect}>
-                        {DEBUG_NOW && (
-                            <div className="absolute left-2 top-2 z-[9999] text-[10px] text-red-400">
-                                isToday={String(isToday)} showNow={String(showNow)} now={nowP.hour}:{String(nowP.minute).padStart(2, "0")}
-                            </div>
-                        )}
-
                         {showNow && (
                             <div className="absolute left-0 right-0 pointer-events-none" style={{ top: nowTopPx, zIndex: 40 }}>
                                 <div className="absolute -left-2 -top-1.5 h-3 w-3 rounded-full" style={{ backgroundColor: "#ef4444" }} />
@@ -464,33 +481,42 @@ export default function DayView(props: {
                         )}
 
                         {layout.map((it) => {
-                            const colW = 100 / it.cols;
-                            const left = `calc(${it.col * colW}% + 4px)`;
-                            const width = `calc(${colW}% - 8px)`;
+                            const offset = Math.min(it.stackIndex * 10, 24);
+                            const leftPx = 6 + offset;
+                            const width = `calc(100% - ${leftPx + 6}px)`; // left + right padding
+
+                            const timeText = `${fmtTime(it.ev.start)} – ${fmtTime(it.ev.end)}`;
+                            const tooltip = [it.ev.title, timeText, it.ev.location, it.ev.description].filter(Boolean).join("\n");
+
                             const isDraggingThis = dragRef.current?.ev.instanceId === it.ev.instanceId;
 
                             return (
                                 <button
                                     key={it.ev.instanceId}
                                     data-event="1"
-                                    className="absolute px-2 py-1 rounded-md text-[11px] text-left border border-transparent hover:border-slate-800/60 overflow-hidden"
+                                    className="absolute px-2 py-1 rounded-md text-left border border-transparent hover:border-slate-800/60 overflow-hidden"
                                     style={{
-                                        left,
+                                        left: `${leftPx}px`,
                                         width,
                                         top: topFromMinutes(it.startMin),
                                         height: heightFromMinutes(it.startMin, it.endMin),
                                         backgroundColor: it.ev.color ?? "#3b82f6",
                                         opacity: isDraggingThis ? 0.35 : 1,
-                                        zIndex: 20 + it.col,
+                                        zIndex: 20 + it.stackIndex,
                                     }}
-                                    title={it.ev.title}
+                                    title={tooltip}
                                     onMouseDown={(e) => beginDrag(it, e)}
                                 >
-                                    <div className="font-semibold truncate">{it.ev.title}</div>
-                                    <div className="opacity-80 truncate">
-                                        {new Date(it.ev.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                                        {new Date(it.ev.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                    </div>
+                                    <div className="text-[11px] font-semibold truncate">{it.ev.title}</div>
+                                    <div className="text-[10px] opacity-90 truncate">{timeText}</div>
+
+                                    {it.ev.location && <div className="text-[10px] opacity-85 truncate">{it.ev.location}</div>}
+
+                                    {it.ev.description && (
+                                        <div className="text-[10px] opacity-75 leading-tight max-h-[26px] overflow-hidden">
+                                            {it.ev.description}
+                                        </div>
+                                    )}
                                 </button>
                             );
                         })}

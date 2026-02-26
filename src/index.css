@@ -21,6 +21,9 @@
     font-family: "Inter", system-ui, sans-serif;
 }
 
+.hidden-scroll::-webkit-scrollbar {
+    display: none;
+}
 
 /* Custom Scrollbar untuk dark theme */
 .savings-scroll::-webkit-scrollbar {
